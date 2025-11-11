@@ -1,4 +1,8 @@
 # Byte-compiled / optimized / DLL files
+gguf_files/
+q4nx_files/
+test.ipynb
+venv/
 __pycache__/
 *.py[codz]
 *$py.class
