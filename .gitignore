@@ -2,6 +2,7 @@
 gguf_files/
 q4nx_files/
 test.ipynb
+*.bin
 venv/
 __pycache__/
 *.py[codz]
