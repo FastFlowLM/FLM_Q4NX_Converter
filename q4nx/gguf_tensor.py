@@ -35,11 +35,10 @@ class GGUFTensor:
         d = d.view(np.float16).astype(np.float32)
 
         qs = qs.reshape((n_blocks, -1, 1, block_size // 2)) >> np.array([0, 4], dtype=np.uint8).reshape((1, 1, 2, 1))
-        qs = (qs & np.uint8(0x0F)).reshape((n_blocks, -1)).astype(np.int8)
+        qs = (qs & np.uint8(0x0F)).reshape((n_blocks, -1)).astype(np.int8) - np.int8(8)
 
         d = torch.from_numpy(d)
-        # m = torch.zeros_like(d)
-        m = d * (-8)
+        m = torch.zeros_like(d)
         qs = torch.from_numpy(qs)
         d = d.view(-1, columns // block_size)
         m = m.view(-1, columns // block_size)
@@ -75,7 +74,7 @@ class GGUFTensor:
 
         return d, m, qs
 
-    def unpack(self) -> np.ndarray:
+    def unpack(self, default_tensor_type: GGMLQuantizationType = GGMLQuantizationType.Q4_1) -> np.ndarray:
         if self.tensor_type == GGMLQuantizationType.F32:
             return [torch.Tensor(np.array(self.data.view(np.float32)))]
         elif self.tensor_type == GGMLQuantizationType.F16:
@@ -95,8 +94,13 @@ class GGUFTensor:
                 w = torch.from_numpy(w).contiguous().to(torch.bfloat16)
                 
                 w = w.to(torch.float32).numpy()
-                data_q4_1 = quantize(w, GGMLQuantizationType.Q4_1).copy()
-                d, m, qw = self.unpack_q4_1(data_q4_1, self.shape[0])
+                data_quantized = quantize(w, default_tensor_type).copy()
+                if default_tensor_type == GGMLQuantizationType.Q4_1:
+                    d, m, qw = self.unpack_q4_1(data_quantized, self.shape[0])
+                elif default_tensor_type == GGMLQuantizationType.Q4_0:
+                    d, m, qw = self.unpack_q4_0(data_quantized, self.shape[0])
+                else:
+                    raise ValueError(f"Unsupported tensor type: {default_tensor_type.name}")
                 return d, m, qw
             except Exception as e:
                 print(f"Error unpacking {self.tensor_type.name}: {e}")

@@ -97,9 +97,12 @@ class __Q4NX_Converter(ABC):
                 for bid in range(self.num_layers):
                     self.forward_name_map[param_info["gguf_name"].format(bid=bid)] = param_info["q4nx_name"].format(bid=bid)
                     self.backward_name_map[param_info["q4nx_name"].format(bid=bid)] = param_info["gguf_name"].format(bid=bid)
+                    if bid == 0:
+                        print(f"Converted {param_info['gguf_name'].format(bid=bid)} to {param_info['q4nx_name'].format(bid=bid)}")
             else:
                 self.forward_name_map[param_info["gguf_name"]] = param_info["q4nx_name"]
                 self.backward_name_map[param_info["q4nx_name"]] = param_info["gguf_name"]
+                print(f"Converted {param_info['gguf_name']} to {param_info['q4nx_name']}")
 
         # sort the name map by the name alphabetically
         self.forward_name_map = dict(sorted(self.forward_name_map.items(), key=lambda item: item[0]))
@@ -159,8 +162,8 @@ class __Q4NX_Converter(ABC):
             qw = rearrange(qw, 'n (g r) c -> n g r c', r = self.parallel_size)
             qw = rearrange(qw, 'n g (r b) c -> n g c r b', b = 2).contiguous().to(torch.int8)
 
-            qw[..., 1] = torch.bitwise_left_shift(qw[..., 1], 4)
-            qw[..., 0] = torch.bitwise_or(qw[..., 0], qw[..., 1])
+            qw[..., 1] = torch.bitwise_and(torch.bitwise_left_shift(qw[..., 1], 4), 0xF0)
+            qw[..., 0] = torch.bitwise_or(torch.bitwise_and(qw[..., 0], 0x0F), qw[..., 1])
             qw = qw[..., 0].contiguous()
             qw = rearrange(qw, 'n g c r -> n (g c r)').contiguous()
         else:
@@ -173,8 +176,8 @@ class __Q4NX_Converter(ABC):
             qw = rearrange(qw, 'p q (g r) c -> p q g r c', r = self.parallel_size)
             qw = rearrange(qw, 'p q g (r b) c -> p q g c r b', b = 2).contiguous().to(torch.int8)
 
-            qw[..., 1] = torch.bitwise_left_shift(qw[..., 1], 4)
-            qw[..., 0] = torch.bitwise_or(qw[..., 0], qw[..., 1])
+            qw[..., 1] = torch.bitwise_and(torch.bitwise_left_shift(qw[..., 1], 4), 0xF0)
+            qw[..., 0] = torch.bitwise_or(torch.bitwise_and(qw[..., 0], 0x0F), qw[..., 1])
             qw = qw[..., 0].contiguous()
             qw = rearrange(qw, 'p q g c r -> p q (g c r)').contiguous()
         d = d.to(torch.bfloat16).view(torch.int8)
