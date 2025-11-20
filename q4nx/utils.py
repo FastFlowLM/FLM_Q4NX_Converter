@@ -31,6 +31,6 @@ def round_up_to_multiple(n: int, multiple: int) -> int:
     return ((n + multiple - 1) // multiple) * multiple
 
 def create_dir_if_not_exists(path: str):
-    dir_path = os.path.dirname(path)
-    if not os.path.exists(dir_path):
-        os.makedirs(dir_path)
+    if not os.path.exists(path):
+        print(f"[INFO] Creating directory {path}...")
+        os.makedirs(path)

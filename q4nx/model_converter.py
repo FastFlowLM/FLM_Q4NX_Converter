@@ -90,6 +90,7 @@ class __Q4NX_Converter(ABC):
         self._create_name_maps()
 
     def _create_name_maps(self):
+        print("[INFO] Creating name maps...")
         self.forward_name_map = {}
         self.backward_name_map = {}
         for param_name, param_info in self.q4nx_config["name_map"].items():
@@ -98,11 +99,11 @@ class __Q4NX_Converter(ABC):
                     self.forward_name_map[param_info["gguf_name"].format(bid=bid)] = param_info["q4nx_name"].format(bid=bid)
                     self.backward_name_map[param_info["q4nx_name"].format(bid=bid)] = param_info["gguf_name"].format(bid=bid)
                     if bid == 0:
-                        print(f"Converted {param_info['gguf_name'].format(bid=bid)} to {param_info['q4nx_name'].format(bid=bid)}")
+                        print(f"\tConverted {param_info['gguf_name'].format(bid=bid)} to {param_info['q4nx_name'].format(bid=bid)}")
             else:
                 self.forward_name_map[param_info["gguf_name"]] = param_info["q4nx_name"]
                 self.backward_name_map[param_info["q4nx_name"]] = param_info["gguf_name"]
-                print(f"Converted {param_info['gguf_name']} to {param_info['q4nx_name']}")
+                print(f"\tConverted {param_info['gguf_name']} to {param_info['q4nx_name']}")
 
         # sort the name map by the name alphabetically
         self.forward_name_map = dict(sorted(self.forward_name_map.items(), key=lambda item: item[0]))
@@ -116,8 +117,9 @@ class __Q4NX_Converter(ABC):
         return False
 
     def _export_q4nx_tensors(self, q4nx_path: str):
+        print(f"[INFO] Saving Q4NX tensors to {q4nx_path}/model.q4nx...")
         create_dir_if_not_exists(q4nx_path)
-        save_file(self.q4nx_tensors, q4nx_path)
+        save_file(self.q4nx_tensors, os.path.join(q4nx_path, "model.q4nx"))
 
     # def _convert_tensor(self, gguf_tensor: GGUFTensor) -> torch.Tensor:
         
@@ -192,6 +194,211 @@ class __Q4NX_Converter(ABC):
 
         merged = torch.from_numpy(merged)
         return merged
+
+    def _extract_tokenizer_json(self, output_folder: str) -> dict:
+        """
+        Extract tokenizer information from GGUF file and convert to HuggingFace tokenizer.json format.
+        
+        Args:
+            output_folder: Path to save the tokenizer.json file
+            
+        Returns:
+            Dictionary containing tokenizer configuration
+        """
+        print("[INFO] Extracting tokenizer JSON...")
+        tokenizer_json_path = os.path.join(output_folder, "tokenizer.json")
+        
+        # Extract tokenizer metadata from GGUF
+        tokenizer_model = None
+        tokens = []
+        scores = []
+        token_types = []
+        merges = []
+        bos_token_id = None
+        eos_token_id = None
+        unk_token_id = None
+        pad_token_id = None
+        
+        for field in self.gguf_reader.fields.values():
+            # Tokenizer model type
+            if field.name == "tokenizer.ggml.model":
+                tokenizer_model = str(field.parts[field.data[0]], encoding='utf-8') if field.data else None
+            
+            # Token list
+            elif field.name == "tokenizer.ggml.tokens":
+                tokens = [str(field.parts[i], encoding='utf-8') for i in field.data]
+            
+            # Token scores (for SentencePiece)
+            elif field.name == "tokenizer.ggml.scores":
+                scores = field.data.tolist() if hasattr(field.data, 'tolist') else list(field.data)
+            
+            # Token types
+            elif field.name == "tokenizer.ggml.token_type":
+                token_types = field.data.tolist() if hasattr(field.data, 'tolist') else list(field.data)
+            
+            # BPE merges
+            elif field.name == "tokenizer.ggml.merges":
+                merges = [str(field.parts[i], encoding='utf-8') for i in field.data]
+            
+            # Special token IDs
+            elif field.name == "tokenizer.ggml.bos_token_id":
+                bos_token_id = int(field.contents())
+                print(f"[INFO] BOSS token ID: {bos_token_id}")
+            elif field.name == "tokenizer.ggml.eos_token_id":
+                eos_token_id = int(field.contents())
+                print(f"[INFO] EOS token ID: {eos_token_id}")
+            elif field.name == "tokenizer.ggml.unknown_token_id":
+                unk_token_id = int(field.contents())
+                print(f"[INFO] Unknown token ID: {unk_token_id}")
+            elif field.name == "tokenizer.ggml.padding_token_id":
+                pad_token_id = int(field.contents())
+                print(f"[INFO] Padding token ID: {pad_token_id}")
+        
+        # Build vocab dictionary for HuggingFace format
+        vocab = {}
+        for idx, token in enumerate(tokens):
+            vocab[token] = idx
+        
+        # Determine tokenizer type and create appropriate HuggingFace config
+        if tokenizer_model == "llama" or tokenizer_model == "gpt2":
+            # BPE tokenizer
+            tokenizer_json = {
+                "version": "1.0",
+                "truncation": None,
+                "padding": None,
+                "added_tokens": self._build_added_tokens(tokens, bos_token_id, eos_token_id, unk_token_id, pad_token_id),
+                "normalizer": None,
+                "pre_tokenizer": {
+                    "type": "ByteLevel",
+                    "add_prefix_space": False,
+                    "trim_offsets": True,
+                    "use_regex": True
+                },
+                "post_processor": {
+                    "type": "ByteLevel",
+                    "add_prefix_space": False,
+                    "trim_offsets": True
+                },
+                "decoder": {
+                    "type": "ByteLevel",
+                    "add_prefix_space": False,
+                    "trim_offsets": True,
+                    "use_regex": True
+                },
+                "model": {
+                    "type": "BPE",
+                    "dropout": None,
+                    "unk_token": tokens[unk_token_id] if unk_token_id is not None and unk_token_id < len(tokens) else None,
+                    "continuing_subword_prefix": "",
+                    "end_of_word_suffix": "",
+                    "fuse_unk": False,
+                    "byte_fallback": False,
+                    "vocab": vocab,
+                    "merges": merges
+                }
+            }
+        else:
+            # Default to SentencePiece-like tokenizer (for llama, etc.)
+            tokenizer_json = {
+                "version": "1.0",
+                "truncation": None,
+                "padding": None,
+                "added_tokens": self._build_added_tokens(tokens, bos_token_id, eos_token_id, unk_token_id, pad_token_id),
+                "normalizer": {
+                    "type": "Sequence",
+                    "normalizers": []
+                },
+                "pre_tokenizer": {
+                    "type": "Metaspace",
+                    "replacement": "▁",
+                    "add_prefix_space": True,
+                    "prepend_scheme": "first"
+                },
+                "post_processor": {
+                    "type": "TemplateProcessing",
+                    "single": [
+                        {
+                            "SpecialToken": {
+                                "id": tokens[bos_token_id] if bos_token_id is not None and bos_token_id < len(tokens) else "<s>",
+                                "type_id": 0
+                            }
+                        },
+                        {"Sequence": {"id": "A", "type_id": 0}}
+                    ],
+                    "pair": [
+                        {
+                            "SpecialToken": {
+                                "id": tokens[bos_token_id] if bos_token_id is not None and bos_token_id < len(tokens) else "<s>",
+                                "type_id": 0
+                            }
+                        },
+                        {"Sequence": {"id": "A", "type_id": 0}},
+                        {
+                            "SpecialToken": {
+                                "id": tokens[eos_token_id] if eos_token_id is not None and eos_token_id < len(tokens) else "</s>",
+                                "type_id": 0
+                            }
+                        },
+                        {"Sequence": {"id": "B", "type_id": 1}}
+                    ],
+                    "special_tokens": {}
+                },
+                "decoder": {
+                    "type": "Metaspace",
+                    "replacement": "▁",
+                    "add_prefix_space": True,
+                    "prepend_scheme": "first"
+                },
+                "model": {
+                    "type": "Unigram",
+                    "unk_id": unk_token_id,
+                    "vocab": [[token, score] for token, score in zip(tokens, scores)] if scores else [[token, 0.0] for token in tokens]
+                }
+            }
+        
+        # Save tokenizer.json
+        create_dir_if_not_exists(output_folder)
+        with open(tokenizer_json_path, 'w', encoding='utf-8') as f:
+            json.dump(tokenizer_json, f, indent=2, ensure_ascii=False)
+        
+        print(f"[INFO] Tokenizer saved to {tokenizer_json_path}")
+        return tokenizer_json
+    
+    def _build_added_tokens(self, tokens: list, bos_id: int, eos_id: int, unk_id: int, pad_id: int) -> list:
+        """
+        Build the added_tokens list for HuggingFace tokenizer format.
+        
+        Args:
+            tokens: List of all tokens
+            bos_id: Beginning of sequence token ID
+            eos_id: End of sequence token ID
+            unk_id: Unknown token ID
+            pad_id: Padding token ID
+            
+        Returns:
+            List of added token dictionaries
+        """
+        added_tokens = []
+        special_token_ids = {
+            bos_id: "bos_token",
+            eos_id: "eos_token", 
+            unk_id: "unk_token",
+            pad_id: "pad_token"
+        }
+        
+        for token_id, token_type in special_token_ids.items():
+            if token_id is not None and token_id < len(tokens):
+                added_tokens.append({
+                    "id": token_id,
+                    "content": tokens[token_id],
+                    "single_word": False,
+                    "lstrip": False,
+                    "rstrip": False,
+                    "normalized": False,
+                    "special": True
+                })
+        
+        return added_tokens
 
 
 def get_model_arch_from_gguf(reader: GGUFReader) -> ModelArch:

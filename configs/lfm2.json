@@ -6,6 +6,7 @@
         "keep_block_in_2D": false,
         "optimize_ddr": true
     },
+    "default_tensor_type": "Q4_0",
     "name_map": {
         "embedding": {
             "gguf_name": "token_embd.weight",

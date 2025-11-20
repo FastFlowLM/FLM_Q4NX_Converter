@@ -17,7 +17,7 @@ class Llama(__Q4NX_Converter, model_arch=ModelArch.LLAMA):
         self.q4nx_tensors = {}
 
         if not self._has_lm_head():
-            print("Model does not have a lm_head, use embedding weights as lm_head")
+            print("[INFO] Model does not have a lm_head, use embedding weights as lm_head")
             unpacked = self.gguf_tensors["token_embd.weight"].unpack()
             self.q4nx_tensors["lm_head.weight"] = self._pack_q4nx(*unpacked)
 
@@ -31,4 +31,5 @@ class Llama(__Q4NX_Converter, model_arch=ModelArch.LLAMA):
             unpacked = gguf_tensor.unpack()
             self.q4nx_tensors[self.forward_name_map[gguf_tensor.name]] = self._pack_q4nx(*unpacked)
 
-        self._export_q4nx_tensors(q4nx_path)
+        # self._export_q4nx_tensors(q4nx_path)
+        self._extract_tokenizer_json(q4nx_path)
