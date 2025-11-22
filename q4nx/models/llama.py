@@ -31,15 +31,17 @@ class Llama(__Q4NX_Converter, model_arch=ModelArch.LLAMA):
                 continue
 
             unpacked = gguf_tensor.unpack()
-            
+
             torch.set_printoptions(threshold=16, edgeitems=5, linewidth=200)
             if "q_proj" in self.forward_name_map[gguf_tensor.name] or "k_proj" in self.forward_name_map[gguf_tensor.name]: # for llama q_proj, the order is special
                 # 0, 1, 2, .... 127
                 # 0, 64, 1, ..., 127
+                DH = self.gguf_reader.fields["llama.rope.dimension_count"].contents()
+                pp = DH // 2
                 d, m, qw = unpacked
-                d = rearrange(d, '(g p q) c -> (g q p) c', p = 64, q = 2).contiguous()
-                m = rearrange(m, '(g p q) c -> (g q p) c', p = 64, q = 2).contiguous()
-                qw = rearrange(qw, '(g p q) c -> (g q p) c', p = 64, q = 2).contiguous()
+                d = rearrange(d, '(g p q) c -> (g q p) c', p = pp, q = 2).contiguous()
+                m = rearrange(m, '(g p q) c -> (g q p) c', p = pp, q = 2).contiguous()
+                qw = rearrange(qw, '(g p q) c -> (g q p) c', p = pp, q = 2).contiguous()
                 unpacked = (d, m, qw)
 
             self.q4nx_tensors[self.forward_name_map[gguf_tensor.name]] = self._pack_q4nx(*unpacked)
