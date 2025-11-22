@@ -112,7 +112,7 @@ class __Q4NX_Converter(ABC):
 
     def _has_lm_head(self) -> bool:
         for key in self.gguf_tensors.keys():
-            if "lm_head.weight" in key:
+            if "lm_head.weight" in key or key == "output.weight":
                 return True 
         return False
 

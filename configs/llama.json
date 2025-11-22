@@ -54,6 +54,10 @@
         "rope_freqs": {
             "gguf_name": "rope_freqs.weight",
             "q4nx_name": "rope_freqs.weight"
+        },
+        "lm_head": {
+            "gguf_name": "output.weight",
+            "q4nx_name": "lm_head.weight"
         }
     }
 }
