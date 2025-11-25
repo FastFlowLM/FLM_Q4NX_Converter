@@ -1,0 +1,505 @@
+[
+    {
+        "label": "GGUFReader",
+        "importPath": "gguf",
+        "description": "gguf",
+        "isExtraImport": true,
+        "detail": "gguf",
+        "documentation": {}
+    },
+    {
+        "label": "dequantize",
+        "importPath": "gguf",
+        "description": "gguf",
+        "isExtraImport": true,
+        "detail": "gguf",
+        "documentation": {}
+    },
+    {
+        "label": "quantize",
+        "importPath": "gguf",
+        "description": "gguf",
+        "isExtraImport": true,
+        "detail": "gguf",
+        "documentation": {}
+    },
+    {
+        "label": "GGUFReader",
+        "importPath": "gguf",
+        "description": "gguf",
+        "isExtraImport": true,
+        "detail": "gguf",
+        "documentation": {}
+    },
+    {
+        "label": "dequantize",
+        "importPath": "gguf",
+        "description": "gguf",
+        "isExtraImport": true,
+        "detail": "gguf",
+        "documentation": {}
+    },
+    {
+        "label": "quantize",
+        "importPath": "gguf",
+        "description": "gguf",
+        "isExtraImport": true,
+        "detail": "gguf",
+        "documentation": {}
+    },
+    {
+        "label": "dequantize",
+        "importPath": "gguf",
+        "description": "gguf",
+        "isExtraImport": true,
+        "detail": "gguf",
+        "documentation": {}
+    },
+    {
+        "label": "GGUFReader",
+        "importPath": "gguf",
+        "description": "gguf",
+        "isExtraImport": true,
+        "detail": "gguf",
+        "documentation": {}
+    },
+    {
+        "label": "dequantize",
+        "importPath": "gguf",
+        "description": "gguf",
+        "isExtraImport": true,
+        "detail": "gguf",
+        "documentation": {}
+    },
+    {
+        "label": "quantize",
+        "importPath": "gguf",
+        "description": "gguf",
+        "isExtraImport": true,
+        "detail": "gguf",
+        "documentation": {}
+    },
+    {
+        "label": "dequantize",
+        "importPath": "gguf",
+        "description": "gguf",
+        "isExtraImport": true,
+        "detail": "gguf",
+        "documentation": {}
+    },
+    {
+        "label": "quantize",
+        "importPath": "gguf",
+        "description": "gguf",
+        "isExtraImport": true,
+        "detail": "gguf",
+        "documentation": {}
+    },
+    {
+        "label": "GGUFReader",
+        "importPath": "gguf",
+        "description": "gguf",
+        "isExtraImport": true,
+        "detail": "gguf",
+        "documentation": {}
+    },
+    {
+        "label": "save_file",
+        "importPath": "safetensors.torch",
+        "description": "safetensors.torch",
+        "isExtraImport": true,
+        "detail": "safetensors.torch",
+        "documentation": {}
+    },
+    {
+        "label": "save_file",
+        "importPath": "safetensors.torch",
+        "description": "safetensors.torch",
+        "isExtraImport": true,
+        "detail": "safetensors.torch",
+        "documentation": {}
+    },
+    {
+        "label": "save_file",
+        "importPath": "safetensors.torch",
+        "description": "safetensors.torch",
+        "isExtraImport": true,
+        "detail": "safetensors.torch",
+        "documentation": {}
+    },
+    {
+        "label": "save_file",
+        "importPath": "safetensors.torch",
+        "description": "safetensors.torch",
+        "isExtraImport": true,
+        "detail": "safetensors.torch",
+        "documentation": {}
+    },
+    {
+        "label": "torch",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "torch",
+        "description": "torch",
+        "detail": "torch",
+        "documentation": {}
+    },
+    {
+        "label": "GGMLQuantizationType",
+        "importPath": "gguf.constants",
+        "description": "gguf.constants",
+        "isExtraImport": true,
+        "detail": "gguf.constants",
+        "documentation": {}
+    },
+    {
+        "label": "GGMLQuantizationType",
+        "importPath": "gguf.constants",
+        "description": "gguf.constants",
+        "isExtraImport": true,
+        "detail": "gguf.constants",
+        "documentation": {}
+    },
+    {
+        "label": "GGMLQuantizationType",
+        "importPath": "gguf.constants",
+        "description": "gguf.constants",
+        "isExtraImport": true,
+        "detail": "gguf.constants",
+        "documentation": {}
+    },
+    {
+        "label": "GGML_QUANT_SIZES",
+        "importPath": "gguf.constants",
+        "description": "gguf.constants",
+        "isExtraImport": true,
+        "detail": "gguf.constants",
+        "documentation": {}
+    },
+    {
+        "label": "rearrange",
+        "importPath": "einops",
+        "description": "einops",
+        "isExtraImport": true,
+        "detail": "einops",
+        "documentation": {}
+    },
+    {
+        "label": "rearrange",
+        "importPath": "einops",
+        "description": "einops",
+        "isExtraImport": true,
+        "detail": "einops",
+        "documentation": {}
+    },
+    {
+        "label": "IntEnum",
+        "importPath": "enum",
+        "description": "enum",
+        "isExtraImport": true,
+        "detail": "enum",
+        "documentation": {}
+    },
+    {
+        "label": "auto",
+        "importPath": "enum",
+        "description": "enum",
+        "isExtraImport": true,
+        "detail": "enum",
+        "documentation": {}
+    },
+    {
+        "label": "Tuple",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Tuple",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "List",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Dict",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "Type",
+        "importPath": "typing",
+        "description": "typing",
+        "isExtraImport": true,
+        "detail": "typing",
+        "documentation": {}
+    },
+    {
+        "label": "numpy",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "numpy",
+        "description": "numpy",
+        "detail": "numpy",
+        "documentation": {}
+    },
+    {
+        "label": "annotations",
+        "importPath": "__future__",
+        "description": "__future__",
+        "isExtraImport": true,
+        "detail": "__future__",
+        "documentation": {}
+    },
+    {
+        "label": "dataclass",
+        "importPath": "dataclasses",
+        "description": "dataclasses",
+        "isExtraImport": true,
+        "detail": "dataclasses",
+        "documentation": {}
+    },
+    {
+        "label": "int_types",
+        "importPath": "mpmath.libmp",
+        "description": "mpmath.libmp",
+        "isExtraImport": true,
+        "detail": "mpmath.libmp",
+        "documentation": {}
+    },
+    {
+        "label": "ABC",
+        "importPath": "abc",
+        "description": "abc",
+        "isExtraImport": true,
+        "detail": "abc",
+        "documentation": {}
+    },
+    {
+        "label": "abstractmethod",
+        "importPath": "abc",
+        "description": "abc",
+        "isExtraImport": true,
+        "detail": "abc",
+        "documentation": {}
+    },
+    {
+        "label": "os",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "os",
+        "description": "os",
+        "detail": "os",
+        "documentation": {}
+    },
+    {
+        "label": "json",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "json",
+        "description": "json",
+        "detail": "json",
+        "documentation": {}
+    },
+    {
+        "label": "torch.nn.functional",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "torch.nn.functional",
+        "description": "torch.nn.functional",
+        "detail": "torch.nn.functional",
+        "documentation": {}
+    },
+    {
+        "label": "argparse",
+        "kind": 6,
+        "isExtraImport": true,
+        "importPath": "argparse",
+        "description": "argparse",
+        "detail": "argparse",
+        "documentation": {}
+    },
+    {
+        "label": "Path",
+        "importPath": "pathlib",
+        "description": "pathlib",
+        "isExtraImport": true,
+        "detail": "pathlib",
+        "documentation": {}
+    },
+    {
+        "label": "create_converter",
+        "importPath": "q4nx",
+        "description": "q4nx",
+        "isExtraImport": true,
+        "detail": "q4nx",
+        "documentation": {}
+    },
+    {
+        "label": "LFM2",
+        "kind": 6,
+        "importPath": "q4nx.models.lfm2",
+        "description": "q4nx.models.lfm2",
+        "peekOfCode": "class LFM2(__Q4NX_Converter, model_arch=ModelArch.LFM2):\n    def __init__(self, gguf_reader: GGUFReader):\n        self.gguf_reader = gguf_reader\n        self.gguf_tensors = []\n        self.initialize()\n    def initialize(self):\n        super().initialize()\n    def convert(self, q4nx_path: str):\n        self.q4nx_tensors = {}\n        if not self._has_lm_head():",
+        "detail": "q4nx.models.lfm2",
+        "documentation": {}
+    },
+    {
+        "label": "Llama",
+        "kind": 6,
+        "importPath": "q4nx.models.llama",
+        "description": "q4nx.models.llama",
+        "peekOfCode": "class Llama(__Q4NX_Converter, model_arch=ModelArch.LLAMA):\n    def __init__(self, gguf_reader: GGUFReader):\n        self.gguf_reader = gguf_reader\n        self.gguf_tensors = []\n        self.initialize()\n    def initialize(self):\n        super().initialize()\n    def convert(self, q4nx_path: str):\n        self.q4nx_tensors = {}\n        if not self._has_lm_head():",
+        "detail": "q4nx.models.llama",
+        "documentation": {}
+    },
+    {
+        "label": "Qwen3VL",
+        "kind": 6,
+        "importPath": "q4nx.models.qwen3vl",
+        "description": "q4nx.models.qwen3vl",
+        "peekOfCode": "class Qwen3VL(__Q4NX_Converter, model_arch=ModelArch.QWEN3VL):\n    def __init__(self, gguf_reader: GGUFReader):\n        self.gguf_reader = gguf_reader\n        self.gguf_tensors = []\n        self.initialize()\n    def initialize(self):\n        super().initialize()\n    def convert(self, q4nx_path: str):\n        self.q4nx_tensors = {}\n        if not self._has_lm_head():",
+        "detail": "q4nx.models.qwen3vl",
+        "documentation": {}
+    },
+    {
+        "label": "ModelArch",
+        "kind": 6,
+        "importPath": "q4nx.constants",
+        "description": "q4nx.constants",
+        "peekOfCode": "class ModelArch(IntEnum):\n    QWEN3VL = auto()\n    QWEN3   = auto()\n    GEMMA3  = auto()\n    LLAMA   = auto()\n    LFM2    = auto()\nModelArchNames: dict[ModelArch, str] = {\n    ModelArch.QWEN3VL: \"qwen3vl\",\n    ModelArch.QWEN3:   \"qwen3\",\n    ModelArch.GEMMA3:  \"gemma3\",",
+        "detail": "q4nx.constants",
+        "documentation": {}
+    },
+    {
+        "label": "GGUFTensor",
+        "kind": 6,
+        "importPath": "q4nx.gguf_tensor",
+        "description": "q4nx.gguf_tensor",
+        "peekOfCode": "class GGUFTensor:\n    name: str\n    shape: Tuple[int, ...]\n    data: np.ndarray\n    tensor_type: GGMLQuantizationType\n    def __init__(self, name: str, shape: Tuple[int, ...], data: np.ndarray, tensor_type: GGMLQuantizationType):\n        self.name = name\n        self.shape = shape\n        self.data = data\n        self.tensor_type = tensor_type",
+        "detail": "q4nx.gguf_tensor",
+        "documentation": {}
+    },
+    {
+        "label": "__Q4NX_Converter",
+        "kind": 6,
+        "importPath": "q4nx.model_converter",
+        "description": "q4nx.model_converter",
+        "peekOfCode": "class __Q4NX_Converter(ABC):\n    model_arch: ModelArch\n    gguf_reader: GGUFReader\n    gguf_tensors: Dict[str, GGUFTensor]\n    q4nx_tensors: Dict[str, torch.Tensor]\n    hidden_size: int\n    num_layers: int\n    q4nx_config: json\n    row_block_size: int\n    col_block_size: int",
+        "detail": "q4nx.model_converter",
+        "documentation": {}
+    },
+    {
+        "label": "get_model_arch_from_gguf",
+        "kind": 2,
+        "importPath": "q4nx.model_converter",
+        "description": "q4nx.model_converter",
+        "peekOfCode": "def get_model_arch_from_gguf(reader: GGUFReader) -> ModelArch:\n    \"\"\"\n    Read the model architecture from a GGUF file.\n    Args:\n        gguf_path: Path to the GGUF file\n    Returns:\n        ModelArch enum value\n    Raises:\n        ValueError: If the architecture is not recognized or supported\n    \"\"\"",
+        "detail": "q4nx.model_converter",
+        "documentation": {}
+    },
+    {
+        "label": "get_registered_models",
+        "kind": 2,
+        "importPath": "q4nx.model_converter",
+        "description": "q4nx.model_converter",
+        "peekOfCode": "def get_registered_models() -> Dict[ModelArch, Type['__Q4NX_Converter']]:\n    \"\"\"\n    Get the dictionary of registered model converters.\n    Returns:\n        Dictionary mapping ModelArch to converter classes\n    \"\"\"\n    return _MODEL_REGISTRY.copy()\ndef create_converter(gguf_path: str) -> __Q4NX_Converter:\n    \"\"\"\n    Factory function to create the appropriate converter based on the GGUF model architecture.",
+        "detail": "q4nx.model_converter",
+        "documentation": {}
+    },
+    {
+        "label": "create_converter",
+        "kind": 2,
+        "importPath": "q4nx.model_converter",
+        "description": "q4nx.model_converter",
+        "peekOfCode": "def create_converter(gguf_path: str) -> __Q4NX_Converter:\n    \"\"\"\n    Factory function to create the appropriate converter based on the GGUF model architecture.\n    Args:\n        gguf_path: Path to the GGUF file\n    Returns:\n        An instance of the appropriate converter class\n    Raises:\n        ValueError: If the architecture is not recognized or no converter is available\n    Example:",
+        "detail": "q4nx.model_converter",
+        "documentation": {}
+    },
+    {
+        "label": "get_relativeL2",
+        "kind": 2,
+        "importPath": "q4nx.utils",
+        "description": "q4nx.utils",
+        "peekOfCode": "def get_relativeL2(y: np.ndarray, y_ref: np.ndarray) -> float:\n    rmse = np.sqrt(np.mean((y - y_ref) ** 2))\n    ref_norm = np.sqrt(np.mean(y_ref ** 2))\n    return rmse / ref_norm\ndef get_relativeL1(y: np.ndarray, y_ref: np.ndarray) -> float:\n    l1 = np.sum(np.abs(y - y_ref))\n    ref_sum = np.sum(np.abs(y_ref))\n    return l1 / ref_sum\ndef get_rmse(y: np.ndarray, y_ref: np.ndarray) -> float:\n    return np.sqrt(np.mean((y - y_ref) ** 2)    ) ",
+        "detail": "q4nx.utils",
+        "documentation": {}
+    },
+    {
+        "label": "get_relativeL1",
+        "kind": 2,
+        "importPath": "q4nx.utils",
+        "description": "q4nx.utils",
+        "peekOfCode": "def get_relativeL1(y: np.ndarray, y_ref: np.ndarray) -> float:\n    l1 = np.sum(np.abs(y - y_ref))\n    ref_sum = np.sum(np.abs(y_ref))\n    return l1 / ref_sum\ndef get_rmse(y: np.ndarray, y_ref: np.ndarray) -> float:\n    return np.sqrt(np.mean((y - y_ref) ** 2)    ) \ndef get_cosine_similarity(y: np.ndarray, y_ref: np.ndarray) -> float:\n    # squize to 1D array\n    y = y.reshape(-1)\n    y_ref = y_ref.reshape(-1)",
+        "detail": "q4nx.utils",
+        "documentation": {}
+    },
+    {
+        "label": "get_rmse",
+        "kind": 2,
+        "importPath": "q4nx.utils",
+        "description": "q4nx.utils",
+        "peekOfCode": "def get_rmse(y: np.ndarray, y_ref: np.ndarray) -> float:\n    return np.sqrt(np.mean((y - y_ref) ** 2)    ) \ndef get_cosine_similarity(y: np.ndarray, y_ref: np.ndarray) -> float:\n    # squize to 1D array\n    y = y.reshape(-1)\n    y_ref = y_ref.reshape(-1)\n    dot_product = np.dot(y, y_ref)\n    norm_y = np.linalg.norm(y)\n    norm_y_ref = np.linalg.norm(y_ref)\n    return dot_product / (norm_y * norm_y_ref)",
+        "detail": "q4nx.utils",
+        "documentation": {}
+    },
+    {
+        "label": "get_cosine_similarity",
+        "kind": 2,
+        "importPath": "q4nx.utils",
+        "description": "q4nx.utils",
+        "peekOfCode": "def get_cosine_similarity(y: np.ndarray, y_ref: np.ndarray) -> float:\n    # squize to 1D array\n    y = y.reshape(-1)\n    y_ref = y_ref.reshape(-1)\n    dot_product = np.dot(y, y_ref)\n    norm_y = np.linalg.norm(y)\n    norm_y_ref = np.linalg.norm(y_ref)\n    return dot_product / (norm_y * norm_y_ref)\ndef round_up_to_multiple(n: int, multiple: int) -> int:\n    if multiple == 0:",
+        "detail": "q4nx.utils",
+        "documentation": {}
+    },
+    {
+        "label": "round_up_to_multiple",
+        "kind": 2,
+        "importPath": "q4nx.utils",
+        "description": "q4nx.utils",
+        "peekOfCode": "def round_up_to_multiple(n: int, multiple: int) -> int:\n    if multiple == 0:\n        return n  # avoid division by zero\n    return ((n + multiple - 1) // multiple) * multiple\ndef create_dir_if_not_exists(path: str):\n    if not os.path.exists(path):\n        print(f\"[INFO] Creating directory {path}...\")\n        os.makedirs(path)",
+        "detail": "q4nx.utils",
+        "documentation": {}
+    },
+    {
+        "label": "create_dir_if_not_exists",
+        "kind": 2,
+        "importPath": "q4nx.utils",
+        "description": "q4nx.utils",
+        "peekOfCode": "def create_dir_if_not_exists(path: str):\n    if not os.path.exists(path):\n        print(f\"[INFO] Creating directory {path}...\")\n        os.makedirs(path)",
+        "detail": "q4nx.utils",
+        "documentation": {}
+    },
+    {
+        "label": "convert_gguf_to_q4nx",
+        "kind": 2,
+        "importPath": "convert",
+        "description": "convert",
+        "peekOfCode": "def convert_gguf_to_q4nx(gguf_path: str, q4nx_path: str):\n    model = create_converter(gguf_path)\n    model.convert(q4nx_path)\ndef main():\n    parser = argparse.ArgumentParser(\n        description='Convert GGUF model files to Q4NX format (output always named model.q4nx)',\n        epilog='Examples:\\n'\n               '  python convert.py -i model.gguf\\n'\n               '  python convert.py -i model.gguf -o output_folder\\n'\n               '  python convert.py model.gguf output_folder\\n'",
+        "detail": "convert",
+        "documentation": {}
+    },
+    {
+        "label": "main",
+        "kind": 2,
+        "importPath": "convert",
+        "description": "convert",
+        "peekOfCode": "def main():\n    parser = argparse.ArgumentParser(\n        description='Convert GGUF model files to Q4NX format (output always named model.q4nx)',\n        epilog='Examples:\\n'\n               '  python convert.py -i model.gguf\\n'\n               '  python convert.py -i model.gguf -o output_folder\\n'\n               '  python convert.py model.gguf output_folder\\n'\n               '  python convert.py model.gguf .',\n        formatter_class=argparse.RawDescriptionHelpFormatter\n    )",
+        "detail": "convert",
+        "documentation": {}
+    }
+]
