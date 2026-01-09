@@ -9,5 +9,6 @@ from .lfm2 import LFM2
 from .qwen3 import Qwen3
 from .gemma3 import Gemma3
 from .phi4 import Phi4
+from .gpt_oss import GPTOSS
 
-__all__ = ['Qwen3VL', 'Llama', 'LFM2', 'Qwen3', 'Gemma3', 'Phi4']
+__all__ = ['Qwen3VL', 'Llama', 'LFM2', 'Qwen3', 'Gemma3', 'Phi4', 'GPTOSS']

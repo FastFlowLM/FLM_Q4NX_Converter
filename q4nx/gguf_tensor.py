@@ -74,6 +74,9 @@ class GGUFTensor:
 
         return d, m, qs
     
+    @staticmethod
+    def unpack_mxfp4(tensor: np.ndarray, columns: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    
     def dequantize(self) -> torch.Tensor:
         w = dequantize(self.data, self.tensor_type)
         w = torch.from_numpy(w).contiguous().to(torch.bfloat16)
