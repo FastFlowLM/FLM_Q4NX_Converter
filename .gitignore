@@ -1,7 +1,7 @@
 # Byte-compiled / optimized / DLL files
 gguf_files/
 q4nx_files/
-test.ipynb
+*.ipynb
 *.bin
 venv/
 __pycache__/

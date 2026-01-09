@@ -73,6 +73,12 @@ class GGUFTensor:
         qs = qs.view(-1, int(columns))
 
         return d, m, qs
+    
+    def dequantize(self) -> torch.Tensor:
+        w = dequantize(self.data, self.tensor_type)
+        w = torch.from_numpy(w).contiguous().to(torch.bfloat16)
+        return w
+
 
     def unpack(self, default_tensor_type: GGMLQuantizationType = GGMLQuantizationType.Q4_1) -> np.ndarray:
         if self.tensor_type == GGMLQuantizationType.F32:

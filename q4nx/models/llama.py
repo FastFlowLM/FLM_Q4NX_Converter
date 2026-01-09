@@ -32,7 +32,6 @@ class Llama(__Q4NX_Converter, model_arch=ModelArch.LLAMA):
 
             unpacked = gguf_tensor.unpack()
 
-            torch.set_printoptions(threshold=16, edgeitems=5, linewidth=200)
             if "q_proj" in self.forward_name_map[gguf_tensor.name] or "k_proj" in self.forward_name_map[gguf_tensor.name]: # for llama q_proj, the order is special
                 # 0, 1, 2, .... 127
                 # 0, 64, 1, ..., 127

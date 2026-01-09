@@ -46,8 +46,12 @@ else
     pip install amd-quark
     pip install accelerate
     pip install "huggingface-hub[cli]"
-    pip install gguf
     pip install git+https://github.com/huggingface/transformers.git
+
+    # GGUF must use llama.cpp version
+    git clone https://github.com/ggml-org/llama.cpp.git
+    cp -r llama.cpp/gguf-py/gguf ./venv/lib/python3.*/site-packages/
+    rm -rf llama.cpp
 fi
 
 # Print success message

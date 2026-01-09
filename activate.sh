@@ -13,6 +13,7 @@
 source venv/bin/activate
 
 # set the HF_HOME to the cache directory
+mkdir -p ./hf_cache
 export HF_HOME=./hf_cache
 
 export PATH=/usr/local/cuda/bin:$PATH
