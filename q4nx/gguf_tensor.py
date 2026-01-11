@@ -75,7 +75,73 @@ class GGUFTensor:
         return d, m, qs
     
     @staticmethod
+    def e8m0_to_fp32_half(x: np.ndarray) -> np.ndarray:
+        bits = np.where(x < 2, np.uint32(0x00200000) << np.uint32(x), np.uint32(x - 1) << np.uint32(23))
+        return bits.view(np.float32)
+ 
+    @staticmethod
+    def reverse_transform_nibble_layout(tensor: torch.Tensor) -> torch.Tensor:
+        """Reverses the custom nibble layout transformation."""
+        assert tensor.dtype == torch.uint8
+        assert tensor.shape[-1] == 16
+
+        # 1. Reverse the final nibble swap
+        t_lo = tensor & 0x0F
+        t_hi = tensor & 0xF0
+        interleaved = (t_lo << 4) | (t_hi >> 4)
+
+        # 2. De-interleave the nibbles from abababab... back to aaaa...bbbb...
+        # The high nibbles of 'interleaved' contain the nibbles for the first half (blk_a)
+        nibbles_a_parts = interleaved & 0xF0
+        # The low nibbles of 'interleaved' contain the nibbles for the second half (blk_b)
+        nibbles_b_parts = interleaved & 0x0F
+
+        # Reconstruct blk_a by packing the high nibbles back together
+        # Pair up nibbles: (1st high nibble) | (2nd high nibble >> 4)
+        blk_a = nibbles_a_parts[..., 0::2] | (nibbles_a_parts[..., 1::2] >> 4)
+
+        # Reconstruct blk_b by packing the low nibbles back together
+        # Pair up nibbles: (1st low nibble << 4) | (2nd low nibble)
+        blk_b = (nibbles_b_parts[..., 0::2] << 4) | nibbles_b_parts[..., 1::2]
+
+        deinterleaved = torch.cat((blk_a, blk_b), dim=-1)
+
+        # 3. Reverse the initial nibble swap
+        t_lo = deinterleaved & 0x0F
+        t_hi = deinterleaved & 0xF0
+        original_tensor = (t_lo << 4) | (t_hi >> 4)
+
+        return original_tensor       
+     
+    @staticmethod
+    def split_ggml_mxfpx_to_scale_blocks(structured_data: np.ndarray):
+        """Split GGML MXFP4 data into scales and data blocks
+
+        Format per block (17 bytes):
+            - 1 byte: scale (uint8)
+            - 16 bytes: 32 x 4-bit float values (2 exponent bits + 1 mantissa bit each)
+        """
+        
+        assert (structured_data.dtype == np.uint8 or structured_data.dtype == np.int8), "Input must be np.uint8 or np.int8"
+
+        original_shape = structured_data.shape
+        assert original_shape[-1] % 17 == 0, "The last dimension must be a multiple of 17"
+        
+        # Reshape the last dimension into blocks of 17 bytes
+        blocks = structured_data.reshape(*original_shape[:-1], -1, 17)
+        
+        # Extract scales (first byte of each block)
+        scales = blocks[..., 0].astype(np.uint8)
+        
+        # Extract data (remaining 16 bytes, keep as uint8 for 4-bit unpacking)
+        data = reverse_transform_nibble_layout( torch.from_numpy( blocks[..., 1:].astype(np.uint8))).numpy()     
+        return scales, data
+    
+    @staticmethod
     def unpack_mxfp4(tensor: np.ndarray, columns: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        scale, data = split_ggml_mxfpx_to_scale_blocks(tensor)
+        return scale, data
+
     
     def dequantize(self) -> torch.Tensor:
         w = dequantize(self.data, self.tensor_type)
