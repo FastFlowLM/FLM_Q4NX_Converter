@@ -78,9 +78,9 @@ class GGUFTensor:
     def e8m0_to_fp32_half(x: np.ndarray) -> np.ndarray:
         bits = np.where(x < 2, np.uint32(0x00200000) << np.uint32(x), np.uint32(x - 1) << np.uint32(23))
         return bits.view(np.float32)
- 
+
     @staticmethod
-    def reverse_transform_nibble_layout(tensor: torch.Tensor) -> torch.Tensor:
+    def reverse_transform_nibble_layout( tensor: torch.Tensor) -> torch.Tensor:
         """Reverses the custom nibble layout transformation."""
         assert tensor.dtype == torch.uint8
         assert tensor.shape[-1] == 16
@@ -134,12 +134,12 @@ class GGUFTensor:
         scales = blocks[..., 0].astype(np.uint8)
         
         # Extract data (remaining 16 bytes, keep as uint8 for 4-bit unpacking)
-        data = reverse_transform_nibble_layout( torch.from_numpy( blocks[..., 1:].astype(np.uint8))).numpy()     
+        data = GGUFTensor.reverse_transform_nibble_layout( torch.from_numpy( blocks[..., 1:].astype(np.uint8))).numpy()     
         return scales, data
     
     @staticmethod
     def unpack_mxfp4(tensor: np.ndarray, columns: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        scale, data = split_ggml_mxfpx_to_scale_blocks(tensor)
+        scale, data = GGUFTensor.split_ggml_mxfpx_to_scale_blocks(tensor)
         return scale, data
 
     
