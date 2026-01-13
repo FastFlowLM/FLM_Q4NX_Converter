@@ -54,8 +54,8 @@ def main():
 
 if __name__ == "__main__":
     # for debug, give the path and ouptut path here by directly set the command line args
-    import sys
-    sys.argv = ['convert.py', '-i', 'unsloth_gpt-oss-20b-Q4_1.gguf', '-o', 'unsloth-gptoss20b-converted']
+    # import sys
+    # sys.argv = ['convert.py', '-i', 'unsloth_gpt-oss-20b-Q4_0.gguf', '-o', 'unsloth-gotoss20b-q40']
             
     
     
