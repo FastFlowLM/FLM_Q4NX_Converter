@@ -138,9 +138,9 @@ class GGUFTensor:
         return scales, data
     
     @staticmethod
-    def unpack_mxfp4(tensor: np.ndarray, columns: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def unpack_mxfp4(tensor: np.ndarray, columns: int) -> Tuple[torch.Tensor, torch.Tensor]:
         scale, data = GGUFTensor.split_ggml_mxfpx_to_scale_blocks(tensor)
-        return scale, data
+        return torch.from_numpy(scale), torch.from_numpy(data)
 
     
     def dequantize(self) -> torch.Tensor:
@@ -158,6 +158,8 @@ class GGUFTensor:
             return self.unpack_q4_0(self.data, self.shape[0])
         elif self.tensor_type == GGMLQuantizationType.Q4_1:
             return self.unpack_q4_1(self.data, self.shape[0])
+        elif self.tensor_type == GGMLQuantizationType.MXFP4:
+            return self.unpack_mxfp4(self.data, self.shape[0])
         else:
             """
                 If the tensor type is not supported, try to dequantize it and then quantize it back to Q4_1

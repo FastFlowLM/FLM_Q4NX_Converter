@@ -121,9 +121,197 @@ class __Q4NX_Converter(ABC):
         create_dir_if_not_exists(q4nx_path)
         save_file(self.q4nx_tensors, os.path.join(q4nx_path, "model.q4nx"))
 
-    # def _convert_tensor(self, gguf_tensor: GGUFTensor) -> torch.Tensor:
+    def _pack_MXFP4_q4nx(self, scales:torch.Tensor, data:torch.Tensor,    
+            )->torch.Tensor:
+    
+        MXFP4_BLOCK_SIZE= 32
+        MXFP4_BLOCK_SIZE_data_in_byte = 16 # because 4 bit data, so 32 data is 16 byte
         
 
+        
+        #TODO: for now, only support safetensor with multiple expert, aka expect  scalse to be shape of [num_expert/batch, rows, cols]
+        # expect data to be shape of [num_expert/batch, rows, cols_in_byte/MXFP4_BLOCK_SIZE_data_in_byte, MXFP4_BLOCK_SIZE_data_in_byte ]        
+        assert len(scales.shape) == 3
+        assert len(data.shape) ==4
+        assert scales.shape[0] == data.shape[0] and scales.shape[1] == data.shape[1] and scales.shape[2] == data.shape[2]
+        assert data.shape[3] == MXFP4_BLOCK_SIZE_data_in_byte
+        
+        
+        if scales.shape[1] % self.row_block_size !=0:
+            padd_size = (self.row_block_size - scales.shape[1]) % self.row_block_size
+            scales = F.pad(scales, (0, 0, 0, padd_size), "constant", 0)
+            data = F.pad(data, (0, 0, 0,0, 0, self.row_block_size - data.shape[-3] % self.row_block_size), "constant", 0)
+            
+        if (scales.shape[2] * MXFP4_BLOCK_SIZE) % self.col_block_size !=0:
+            addition_padd_size = (self.col_block_size - ((scales.shape[2] * MXFP4_BLOCK_SIZE) % self.col_block_size)) // MXFP4_BLOCK_SIZE
+
+            scales: torch.Tensor = F.pad(scales, (0, addition_padd_size, 0, 0), "constant", 0)
+            data = F.pad(data, (0, 0, 0, addition_padd_size, 0, 0), "constant", 0)
+        
+
+
+        # # calcuate dimension for scales and biases
+
+        scales= scales.contiguous()
+        data = data.contiguous()
+  
+        
+
+        row_div_q4_row = scales.shape[1] // self.row_block_size
+        col_div_q4_col = scales.shape[2] // (self.col_block_size // MXFP4_BLOCK_SIZE)
+        scales = rearrange(
+            scales, 
+            "batch (row_div_q4_row q4_row) (col_div_q4_col q4_col_div32) -> batch row_div_q4_row col_div_q4_col q4_row q4_col_div32", 
+            row_div_q4_row=row_div_q4_row,  
+            col_div_q4_col=col_div_q4_col,
+            q4_row=self.row_block_size, 
+            q4_col_div32=self.col_block_size//MXFP4_BLOCK_SIZE
+        ).contiguous()            
+        
+
+
+        # combine the block dim
+        # Get the dimensions *before* the last two and pass the full shape to view()
+        data: torch.Tensor = data.reshape(*data.shape[:-2], -1)
+        assert len(data.shape) == 3
+        data_row_div = data.shape[1] // self.row_block_size
+        data_col_div = data.shape[2] // (self.col_block_size // 2)
+        data = rearrange(
+            data,
+            "batch (row_div_q4_row q4_row) (col_div_q4_col q4_col) -> batch row_div_q4_row col_div_q4_col q4_row q4_col",
+            row_div_q4_row=data_row_div,
+            col_div_q4_col=data_col_div,
+            q4_row=self.row_block_size,
+            q4_col=(self.col_block_size // 2)
+        ).contiguous()
+
+        # at this step, both scales and data are 
+            # 1. row major within the blocks
+            # 2. Also row major in block level
+
+
+        assert self.row_block_size % self.parallel_size == 0
+        
+        # Now, rearrange data to column major order with stride of 16
+        data = rearrange(
+            data,
+            "batch row_div col_div (q4_row_div_col_stride col_stride) (q4_col one) -> \
+            batch row_div col_div (q4_row_div_col_stride q4_col) (col_stride one)",
+            col_stride = self.parallel_size, # 16 element, since each data is half-byte
+            one = 1,
+        ).contiguous()
+        
+        # at this point, the data is shape of 
+        # the data block is col-major order with col_stride
+        #[batch, row_div, col_div (q4_row_div_col_stride x q4_col )  , col_stride]
+        
+        # however, for each col_stride(normally 16) the data is in uint8_t
+        # thus, it actually mean the last_dim, col_stride is 2 column of 16
+        """
+        
+        EX: if col_stride=16 of uint8_t
+        [
+            a0,
+            a1,
+            a2,
+            a3,
+            a4
+            ...
+        ]
+        
+        But in int4, this actuall represnt
+        [
+            a0_0, a0_1,
+            a1_0, a1_1,
+            a2_0, a2_1,
+            ......
+            
+        ]
+        where a0_0, a0_1 share a common scale
+        Thus, this mean the AIE kernel need to do a even_odd filter, as show in code 
+        https://github.com/ngdxzy/FastFlowLM_Dev/blob/30b43b59d77f5759e943cea52ff7a259ca0fa776/npu_framework/gpt_npu_bin/kernel/mvm_MXFP4.hpp#L76
+        """
+        
+        # Thus, in this code, let us do the even odd filter for it
+        """
+        Thus, we reorder the col_stride from
+        [
+            a0_0, a0_1,a1_0, a1_1, a2_0, a2_1,
+            ......
+        ]
+        to 
+        [
+            a0_0, a1_0, a2_0, .... a0_1, a1_1
+            
+        ]
+        """
+        
+        # data shape: [..., col_stride] (e.g., [..., 16])
+        # Assumes col_stride is an even number (like 16)
+
+        # 1. Extract low and high nibble streams
+        # low_nibbles shape: [..., 16], content: [a0_0, a1_0, a2_0, ..., a15_0]
+        low_nibbles = data & 0x0F
+        # high_nibbles shape: [..., 16], content: [a0_1, a1_1, a2_1, ..., a15_1]
+        high_nibbles = (data >> 4) & 0x0F
+
+        # 2. Pack the low_nibbles stream
+        # [a0_0, a1_0, a2_0, ...] -> [ (a0_0 | a1_0<<4), (a2_0 | a3_0<<4), ... ]
+        # Slicing [..., 0::2] gets evens: [a0_0, a2_0, ..., a14_0]
+        # Slicing [..., 1::2] gets odds: [a1_0, a3_0, ..., a15_0]
+        low_part_packed = (low_nibbles[..., 0::2] & 0x0F) | ((low_nibbles[..., 1::2] & 0x0F) << 4)
+        # low_part_packed shape: [..., 8]
+
+        # 3. Pack the high_nibbles stream
+        # [a0_1, a1_1, a2_1, ...] -> [ (a0_1 | a1_1<<4), (a2_1 | a3_1<<4), ... ]
+        high_part_packed = (high_nibbles[..., 0::2] & 0x0F) | ((high_nibbles[..., 1::2] & 0x0F) << 4)
+        # high_part_packed shape: [..., 8]
+
+        # 4. Concatenate the two 8-byte halves to form the new 16-byte col_stride
+        # Final shape: [..., 16]
+        data_reordered = torch.cat([low_part_packed, high_part_packed], dim=-1)
+        data = data_reordered.contiguous()
+        # NOW, this code change is reflected in https://github.com/ngdxzy/FastFlowLM_Dev/commit/028680d1f670d817fae0e7efe947bb1a4c19c8a3
+        
+        
+        
+        # but for scale, simply change to column major order, NOTE: the stride of 16 does not apply to scale here 
+        # aka, scales remain to be  self.row_block_size x (self.col_block_size//MXFP4_BLOCK_SIZE) but in colum major order  
+        scales = rearrange(
+            scales,
+            "batch row_div col_div q4_row q4_col -> \
+                     batch row_div col_div q4_col q4_row"
+        ).contiguous()
+        
+   
+
+
+        # # Apply the padding.
+        # scales_expanded = F.pad(scales, paddings, "constant", 0)
+        scales = scales.reshape(*scales.shape[:-2], -1).contiguous()
+        padding_amount = scales.shape[-1] * 3  # padding to align with q4nx requirement. Because in q41, 2byte for scale and 2byte for bias
+                                                    # given mxfp4 there is only 1 byte for scale, so need to pad 3 byte
+        paddings = (0, padding_amount)
+        scales = F.pad(scales, paddings, "constant", 0).contiguous()
+
+
+        
+        # at this point, 
+        # data should be shape of [batch, row_div col_div, q4_row, q4_col]
+        # scales should be shape of [batch, row_div, col_div, (self.col_block_size//MXFP4_BLOCK_SIZE), q4_row*4]
+        
+        # now, given they are both uint8, first change data and scales shape by combine the last two dim
+        # data now be [batch, row_div, col_div, q4_row*q4_col]
+        #scale shoule be shape of [batch, row_div, col_div, (self.col_block_size//MXFP4_BLOCK_SIZE) * q4_row*4 ]
+
+        data = data.reshape(*data.shape[:-2], -1).contiguous()
+        # scales = scales_expanded.reshape(*scales_expanded.shape[:-2], -1).contiguous()
+        
+        
+        merged = torch.cat([scales, data], dim=-1).contiguous()
+        return merged
+        
+        
     def _pack_q4nx(self, d: torch.Tensor, m: torch.Tensor = None, qw: torch.Tensor = None) -> torch.Tensor:
         """
 
