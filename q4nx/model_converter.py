@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from gguf import GGUFReader
 from .constants import ModelArch, ModelArchNames
 from .constants import ModelArchConfigs
-from .gguf_tensor import GGUFTensor
+from .gguf_tensor import GGUFTensor, GGMLQuantizationType
 from typing import List, Dict, Type
 import os
 import json
@@ -32,6 +32,7 @@ class __Q4NX_Converter(ABC):
     col_block_size: int
     parallel_size: int   # vector len size for efficient parallel vector operation
     keep_block_in_2D: bool
+    default_q4nx_tensor_type: GGMLQuantizationType 
 
     forward_name_map: Dict[str, str]
     backward_name_map: Dict[str, str]
@@ -87,6 +88,12 @@ class __Q4NX_Converter(ABC):
         self.col_block_size = self.q4nx_config["q4nx_config"]["col_block_size"]
         self.parallel_size = self.q4nx_config["q4nx_config"]["parallel_size"]
         self.keep_block_in_2D = self.q4nx_config["q4nx_config"]["keep_block_in_2D"]
+        if self.q4nx_config["default_tensor_type"] == "Q4_0":
+            self.default_tensor_type = GGMLQuantizationType.Q4_0
+        elif self.q4nx_config["default_tensor_type"] == "Q4_1":
+            self.default_tensor_type = GGMLQuantizationType.Q4_1
+        else:
+            raise ValueError("Unsupported default_tensor_type in config")
         self._create_name_maps()
 
     def _create_name_maps(self):

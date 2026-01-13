@@ -149,7 +149,7 @@ class GGUFTensor:
         return w
 
 
-    def unpack(self, default_tensor_type: GGMLQuantizationType = GGMLQuantizationType.Q4_1) -> np.ndarray:
+    def unpack(self, default_tensor_type: GGMLQuantizationType) -> np.ndarray:
         if self.tensor_type == GGMLQuantizationType.F32:
             return [torch.Tensor(np.array(self.data.view(np.float32)))]
         elif self.tensor_type == GGMLQuantizationType.F16:

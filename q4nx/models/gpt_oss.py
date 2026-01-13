@@ -232,12 +232,13 @@ class GPTOSS(__Q4NX_Converter, model_arch=ModelArch.GPT_OSS):
 
         for key, gguf_tensor in self.gguf_tensors.items():
             print(f"[INFO] Converting tensor {gguf_tensor.name} to {self.forward_name_map[gguf_tensor.name]}")
-            # if "token_embd.weight" in gguf_tensor.name: # this should be bf16
-            #     w = dequantize(gguf_tensor.data, gguf_tensor.tensor_type)
-            #     w = torch.from_numpy(w).contiguous().to(torch.bfloat16)
-            #     self.q4nx_tensors[self.forward_name_map[gguf_tensor.name]] = w
+            if "token_embd.weight"  ==  gguf_tensor.name: # this should be bf16
+                w = dequantize(gguf_tensor.data, gguf_tensor.tensor_type)
+                w = torch.from_numpy(w).contiguous().to(torch.bfloat16)
+                self.q4nx_tensors[self.forward_name_map[gguf_tensor.name]] = w.contiguous()
+                continue
 
-            unpacked = gguf_tensor.unpack()
+            unpacked = gguf_tensor.unpack(self.default_tensor_type)
             #     continue
             if self.forward_name_map[gguf_tensor.name] == "lm_head.weight":
                 qw = self._pack_q4nx(*unpacked)
@@ -272,9 +273,9 @@ class GPTOSS(__Q4NX_Converter, model_arch=ModelArch.GPT_OSS):
         
         
         
-        #FIXME: token_embed.weight dequant to bf16? But use python for now???
-        safetensors_with_embed_tokens_weights = "/home/shouyud/FLM_Q4NX_Converter/model-00001-of-00001.safetensors"
-        self.q4nx_tensors["model.embed_tokens.weight"] = load_file(safetensors_with_embed_tokens_weights)["model.embed_tokens.weight"]
+        # #FIXME: token_embed.weight dequant to bf16? But use python for now???
+        # safetensors_with_embed_tokens_weights = "/home/shouyud/FLM_Q4NX_Converter/model-00001-of-00001.safetensors"
+        # self.q4nx_tensors["model.embed_tokens.weight"] = load_file(safetensors_with_embed_tokens_weights)["model.embed_tokens.weight"]
 
 
 
