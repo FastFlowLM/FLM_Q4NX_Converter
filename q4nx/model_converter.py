@@ -30,7 +30,7 @@ class __Q4NX_Converter(ABC):
 
     row_block_size: int
     col_block_size: int
-    parallel_size: int
+    parallel_size: int   # vector len size for efficient parallel vector operation
     keep_block_in_2D: bool
 
     forward_name_map: Dict[str, str]
@@ -126,27 +126,30 @@ class __Q4NX_Converter(ABC):
 
     def _pack_q4nx(self, d: torch.Tensor, m: torch.Tensor = None, qw: torch.Tensor = None) -> torch.Tensor:
         """
+
+        
         Q4NX format:
-            - chunk shape: 32 x 256
-            - parallel size: 16
-            - scale shape: (256 // 32) x 32
-            - min shape:   (256 // 32) x 32
-            - quant shape: (32 // 16) x 256 x (16 // 2)
+            - chunk shape: row_block_size x col_block_size
+            - scale shape: (col_block_size // Q4_group_size) x row_block_size
+            - min shape:   (col_block_size // Q4_group_size) x row_block_size
+            - quant shape: (row_block_size // parallel) x col_block_size x (parallel // NUM_int4_in_byte)
 
         Therefore:
-            - d: (rows, cols // 32) -> (rows // 32, cols // 32 // 256, 256 // 32, 32)
-            - m: (rows, cols // 32) -> (rows // 32, cols // 32 // 256, 256 // 32, 32)
+            - d: (rows, cols // Q4_group_size) -> (rows // row_block_size, cols // (col_block_size * Q4_group_size), col_block_size // Q4_group_size, Q4_group_size)
+            - m: (rows, cols // Q4_group_size) -> (rows // row_block_size, cols // (col_block_size * Q4_group_size), col_block_size // Q4_group_size, Q4_group_size)
         """
+        Q4_group_size =  32
+        NUM_int4_in_byte = 2                
+        
         if m is None: # not packed, could be a float or bf16 tensor
             return d.to(torch.bfloat16)
 
         rows, cols = qw.shape
-        group_size =  32
 
         if cols%self.col_block_size != 0:
             cols_padded = round_up_to_multiple(cols, self.col_block_size)
             
-            d_m_pad_amount = (cols_padded -cols) // 32
+            d_m_pad_amount = (cols_padded -cols) // Q4_group_size
             qw_pad_amount = cols_padded-cols
             
             d = F.pad(d, (0, d_m_pad_amount), "constant", 0)
@@ -156,13 +159,13 @@ class __Q4NX_Converter(ABC):
             
         if not self.keep_block_in_2D:
             # chunk wise
-            d = rearrange(d, '(p r) (q c) -> (p q) (c r)', r = self.row_block_size, c = self.col_block_size // group_size).contiguous()
-            m = rearrange(m, '(p r) (q c) -> (p q) (c r)', r = self.row_block_size, c = self.col_block_size // group_size).contiguous()
+            d = rearrange(d, '(p r) (q c) -> (p q) (c r)', r = self.row_block_size, c = self.col_block_size // Q4_group_size).contiguous()
+            m = rearrange(m, '(p r) (q c) -> (p q) (c r)', r = self.row_block_size, c = self.col_block_size // Q4_group_size).contiguous()
             # dm done
 
             qw = rearrange(qw, '(p r) (q c) -> (p q) r c', r = self.row_block_size, c = self.col_block_size)
             qw = rearrange(qw, 'n (g r) c -> n g r c', r = self.parallel_size)
-            qw = rearrange(qw, 'n g (r b) c -> n g c r b', b = 2).contiguous().to(torch.int8)
+            qw = rearrange(qw, 'n g (r b) c -> n g c r b', b = NUM_int4_in_byte).contiguous().to(torch.int8)
 
             qw[..., 1] = torch.bitwise_and(torch.bitwise_left_shift(qw[..., 1], 4), 0xF0)
             qw[..., 0] = torch.bitwise_or(torch.bitwise_and(qw[..., 0], 0x0F), qw[..., 1])
@@ -170,13 +173,13 @@ class __Q4NX_Converter(ABC):
             qw = rearrange(qw, 'n g c r -> n (g c r)').contiguous()
         else:
             # chunk wise
-            d = rearrange(d, '(p r) (q c) -> p q (c r)', r = self.row_block_size, c = self.col_block_size // group_size).contiguous()
-            m = rearrange(m, '(p r) (q c) -> p q (c r)', r = self.row_block_size, c = self.col_block_size // group_size).contiguous()
+            d = rearrange(d, '(p r) (q c) -> p q (c r)', r = self.row_block_size, c = self.col_block_size // Q4_group_size).contiguous()
+            m = rearrange(m, '(p r) (q c) -> p q (c r)', r = self.row_block_size, c = self.col_block_size // Q4_group_size).contiguous()
             # dm done
 
             qw = rearrange(qw, '(p r) (q c) -> p q r c', r = self.row_block_size, c = self.col_block_size)
             qw = rearrange(qw, 'p q (g r) c -> p q g r c', r = self.parallel_size)
-            qw = rearrange(qw, 'p q g (r b) c -> p q g c r b', b = 2).contiguous().to(torch.int8)
+            qw = rearrange(qw, 'p q g (r b) c -> p q g c r b', b = NUM_int4_in_byte).contiguous().to(torch.int8)
 
             qw[..., 1] = torch.bitwise_and(torch.bitwise_left_shift(qw[..., 1], 4), 0xF0)
             qw[..., 0] = torch.bitwise_or(torch.bitwise_and(qw[..., 0], 0x0F), qw[..., 1])
