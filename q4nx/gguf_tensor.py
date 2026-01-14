@@ -155,7 +155,7 @@ class GGUFTensor:
         elif self.tensor_type == GGMLQuantizationType.F16:
             return [torch.Tensor(np.array(self.data.view(np.float16).astype(np.float32)))]
         elif self.tensor_type == GGMLQuantizationType.BF16:
-            return [torch.from_numpy(self.data).view(torch.bfloat16)]
+            return [torch.from_numpy(self.data.copy()).view(torch.bfloat16)]
 
         elif self.tensor_type == GGMLQuantizationType.Q4_0:
             return self.unpack_q4_0(self.data, self.shape[0])

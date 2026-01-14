@@ -17,7 +17,8 @@ def main():
                '  python convert.py -i model.gguf\n'
                '  python convert.py -i model.gguf -o output_folder\n'
                '  python convert.py model.gguf output_folder\n'
-               '  python convert.py model.gguf .',
+               '  python convert.py model.gguf .\n'
+               '  python convert.py -i vision_model.gguf -o output_folder -t vision',
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     
@@ -59,15 +60,20 @@ if __name__ == "__main__":
     # import sys
     # sys.argv = ['convert.py', '-i', 'unsloth_gpt-oss-20b-Q4_0.gguf', '-o', 'unsloth-gotoss20b-q40']
             
-    import sys
-    # sys.argv = ['convert.py', '-i', 'gemma-3-4b-it-Q4_1.gguf', '-o', 'unsloth-gemma3-q41']    
-    # main()
+    # import sys
+    # # sys.argv = ['convert.py', '-i', 'gemma-3-4b-it-Q4_1.gguf', '-o', 'unsloth-gemma3-q41']    
+    # # main()
 
 
-    # sys.argv = ['convert.py', '-i', 'gemma3-mmproj-BF16.gguf', '-o', 'unsloth-gemma3-vision', '-t', 'vision']
-    # main()
+    # # sys.argv = ['convert.py', '-i', 'gemma3-mmproj-BF16.gguf', '-o', 'unsloth-gemma3-vision', '-t', 'vision']
+    # # main()
     
 
-    sys.argv = ['convert.py', '-i', 'medgemma3-mmproj-BF16.gguf', '-o', 'unsloth-medgemma3-vision', '-t', 'vision']
-    main()    
-    #main()
+    # # sys.argv = ['convert.py', '-i', 'medgemma3-mmproj-BF16.gguf', '-o', 'unsloth-medgemma3-vision', '-t', 'vision']
+    # # main()
+    # sys.argv = ['convert.py', '-i', 'Qwen3-VL-4B-Instruct-Q4_1.gguf', '-o', 'unsloth-qwen3vl-4b-q41' ]
+    # main()             
+    
+    # sys.argv = ['convert.py', '-i', 'qwen3vl-4b-mmproj-BF16.gguf', '-o', 'unsloth-qwen3vl-vision', '-t', 'vision']
+    # main()            
+    main()
