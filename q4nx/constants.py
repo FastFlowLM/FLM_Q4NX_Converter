@@ -14,14 +14,14 @@ class ModelArch(IntEnum):
     GPT_OSS = auto()
 
 
-ModelArchNames: dict[ModelArch, str] = {
-    ModelArch.QWEN3VL: "qwen3vl",
-    ModelArch.QWEN3:   "qwen3",
-    ModelArch.GEMMA3:  "gemma3",
-    ModelArch.LLAMA:   "llama",
-    ModelArch.LFM2:    "lfm2",
-    ModelArch.PHI4:    "phi3",
-    ModelArch.GPT_OSS: "gpt-oss"
+ModelArchNames: dict[ModelArch, list[str]] = {
+    ModelArch.QWEN3VL: ["qwen3vl", "qwen3-vl"],
+    ModelArch.QWEN3:   ["qwen3"],
+    ModelArch.GEMMA3:  ["gemma3", "Medgemma", "Gemma-3"],
+    ModelArch.LLAMA:   ["llama"],
+    ModelArch.LFM2:    ["lfm2"],
+    ModelArch.PHI4:    ["phi3"],
+    ModelArch.GPT_OSS: ["gpt-oss"]
 }
 
 ModelArchConfigs: dict[ModelArch, str] = {

@@ -26,7 +26,8 @@ class __Q4NX_Converter(ABC):
     q4nx_tensors: Dict[str, torch.Tensor]
     hidden_size: int
     num_layers: int
-    q4nx_config: json
+    embed_length:int
+    q4nx_config: Dict
 
     row_block_size: int
     col_block_size: int
@@ -34,6 +35,12 @@ class __Q4NX_Converter(ABC):
     keep_block_in_2D: bool
     default_q4nx_tensor_type: GGMLQuantizationType 
 
+    
+    
+    # specific for vision models
+    vision_MM_K:int|None
+    vision_MM_N:int|None
+    
     forward_name_map: Dict[str, str]
     backward_name_map: Dict[str, str]
 
@@ -53,7 +60,7 @@ class __Q4NX_Converter(ABC):
         self._load_config()
 
     @abstractmethod
-    def convert(self, q4nx_path: str):
+    def convert(self, q4nx_path: str, weights_type: str = 'language'):
         pass
 
     def _read_gguf_tensors(self):
@@ -74,12 +81,14 @@ class __Q4NX_Converter(ABC):
 
     def _read_gguf_metadata(self):
         for field in self.gguf_reader.fields.values():
-            if field.name == f"{ModelArchNames[self.model_arch]}.embedding_length":
+
+            if field.name.endswith("embedding_length"):
                 self.hidden_size = field.contents()
-            elif field.name == f"{ModelArchNames[self.model_arch]}.feed_forward_length":
+            elif field.name.endswith("feed_forward_length"):
                 self.intermediate_size = field.contents()
-            elif field.name == f"{ModelArchNames[self.model_arch]}.block_count":
+            elif field.name.endswith("block_count"):
                 self.num_layers = field.contents()
+
 
     def _load_config(self, config_file_path: str = "configs"):
         config_path = os.path.join(config_file_path, ModelArchConfigs[self.model_arch])
@@ -94,6 +103,13 @@ class __Q4NX_Converter(ABC):
             self.default_tensor_type = GGMLQuantizationType.Q4_1
         else:
             raise ValueError("Unsupported default_tensor_type in config")
+        
+        if "vision_config" in self.q4nx_config:
+            self.vision_MM_K = self.q4nx_config["vision_config"]["vision_MM_K"]
+            self.vision_MM_N = self.q4nx_config["vision_config"]["vision_MM_N"]
+        else:
+            self.vision_MM_K = None
+            self.vision_MM_N = None
         self._create_name_maps()
 
     def _create_name_maps(self):
@@ -392,6 +408,59 @@ class __Q4NX_Converter(ABC):
 
         merged = torch.from_numpy(merged)
         return merged
+    def vision_mm_weight_rearrange(self, weight: torch.Tensor) -> torch.Tensor:
+        """Rearrange the vision MM weights
+
+
+        In vision MM, the weights matrix is used as the B matrix in A@B operation.    
+        Given a weight tensor of shape (out_features, in_features) correspond to (N, K)
+        
+        The function assume input weights is in row-major of (N, K),
+        which should view as a K x N matrix in col-major.
+        
+        For efficent memory access, the function reorder the matrix to be in block of (N//MM_N, K//MM_K)( MM_N, MM_K) where each
+        block is in row-major order and the blocks are also in row-major order.
+        
+        Then data can also be viewed as in col-major order with block of (K//MM_K, N//MM_N) within each (MM_K, MM_N) block in col-major order.
+
+        For simplicity, the row, column dimension of the matrix is padded to be multiple of max(MM_N, MM_K). 
+        Because in MLP operations, the output dim of up/gate projection needs to match the input dim of down projection.
+        In other words, the N dim of up/gate projection equals to the K dim of down projection.
+    
+    
+        Parameters
+        ----------
+        weight : torch.Tensor
+            _description_
+
+        Returns
+        -------
+        torch.Tensor
+            Reorder vision weights 
+
+        Notes
+        ----------
+        mm_n and mm_k are the data block size that each CT can process in one time.
+        
+        """
+        
+        assert len(weight.shape) ==2
+        assert self.vision_MM_K is not None and self.vision_MM_N is not None, "vision_MM_K and vision_MM_N must be set for vision model weight rearrangement"
+        MM_N_K_padding = max(self.vision_MM_N, self.vision_MM_K)
+        origin_N, origin_K = weight.shape
+        
+    
+        pad_N = (MM_N_K_padding - origin_N % MM_N_K_padding) % MM_N_K_padding
+        pad_K = (MM_N_K_padding - origin_K % MM_N_K_padding) % MM_N_K_padding
+        
+        if pad_N >0 or pad_K >0:
+            weight = F.pad(weight, (0, pad_K, 0, pad_N), "constant", 0)
+        weight = rearrange( weight, 
+                        "(N mm_n) (K mm_k) -> N K (mm_n mm_k)",
+                        mm_k = self.vision_MM_K, mm_n = self.vision_MM_N).contiguous()
+
+        return weight
+        
 
     def _extract_tokenizer_json(self, output_folder: str) -> dict:
         """
@@ -615,17 +684,28 @@ def get_model_arch_from_gguf(reader: GGUFReader) -> ModelArch:
     
     # Get architecture from GGUF metadata
     # The architecture is typically stored in the 'general.architecture' field
-    arch_str = None
+    arch_str:str|None = None
+    basename_str:str|None = None
     for field in reader.fields.values():
         if field.name == 'general.architecture':
             arch_str = str(field.parts[field.data[0]], encoding='utf-8') if field.data else None
-            break
+        elif field.name == 'general.basename':
+            basename_str = str(field.parts[field.data[0]], encoding='utf-8') if field.data else None
     
+
     # Map the architecture string to ModelArch enum
-    for arch_enum, arch_name in ModelArchNames.items():
-        if arch_str.lower() == arch_name.lower():
-            return arch_enum
+    for arch_enum, arch_names in ModelArchNames.items():
+        for arch_name in arch_names:
+            if arch_str.lower() == arch_name.lower():
+                return arch_enum
     
+
+    for arch_enum, arch_names in ModelArchNames.items():
+        for arch_name in arch_names:
+            if basename_str.lower().startswith(arch_name.lower()):
+                return arch_enum
+
+
     raise ValueError(f"Unsupported model architecture: {arch_str}")
 
 
