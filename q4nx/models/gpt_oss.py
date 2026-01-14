@@ -32,7 +32,9 @@ class GPTOSS(__Q4NX_Converter, model_arch=ModelArch.GPT_OSS):
     #         del self.gguf_tensors[f"blk.{layer_id}.ffn_down_exps.weight"]
 
     def post_gpt_oss_process(self,result_tensors_map:dict[str, torch.Tensor], n_layers:int):
-
+        #TODO: FIXME: parameterize it 
+        NUM_CT_PER_COLUMN = 4
+        
         for layer_idx in range(n_layers):
             weight_name_list = [
             f"model.layers.{layer_idx}.ffn_down_exps.weight",
@@ -48,8 +50,8 @@ class GPTOSS(__Q4NX_Converter, model_arch=ModelArch.GPT_OSS):
                 bias = result_tensors_map[bias_name_list[i]]            
                 # first pad the shape[1] to be multiple of 4 (4 CT per column, and each column process separate Expert)
 
-                if weight.shape[1] %4 != 0:
-                    pad_amount = (4 - (weight.shape[1] % 4)) % 4
+                if weight.shape[1] %NUM_CT_PER_COLUMN != 0:
+                    pad_amount = (NUM_CT_PER_COLUMN - (weight.shape[1] % NUM_CT_PER_COLUMN)) % NUM_CT_PER_COLUMN
                     # F.pad expects padding for last dims: (last_left, last_right, mid_left, mid_right, ...)
                     # for a 3D tensor (batch, dim1, dim2) to pad dim1 on the right use (0,0,0,pad_amount)
                     weight = F.pad(weight, (0, 0, 0, 0, 0, pad_amount))
@@ -61,12 +63,17 @@ class GPTOSS(__Q4NX_Converter, model_arch=ModelArch.GPT_OSS):
                     bias = F.pad(bias, (0, pad_amount))
                 
                 #NOTE: now do something unique for dequant stuff
+                # This trick is to add thew bias into the weight matrix right after the scale values
+                # So that at runtime, we can just load the weight matrix and get the bias values
+                # without extra memory load
+                # This works since MXFP4 size is smaller than q41 block size. 
+                # recall mxfp4 only have 1 byte scale for every 32 value, while q41 has 2byte scale and 2byte bias for every 32 value
                 bias = rearrange(
                     bias,
                     "batch (block Q4NX_ROW_SIZE) -> batch block Q4NX_ROW_SIZE",
                     Q4NX_ROW_SIZE = self.row_block_size
                 ).contiguous()
-                NUM_OF_32_set = self.col_block_size//32
+                NUM_OF_32_set = self.col_block_size//32  # 32 becasuse MXFP4 share scale per 32 columns
                 assert bias.dtype == torch.bfloat16
                 bias_byte = bias.view(torch.uint8)
                 for exp_id in range(weight.shape[0]):
@@ -81,7 +88,7 @@ class GPTOSS(__Q4NX_Converter, model_arch=ModelArch.GPT_OSS):
                     weight, 
                     "batch (row_div_four four_row) (col_div one) data_block -> batch row_div_four col_div (four_row one) data_block",
                     one=1,
-                    four_row=4
+                    four_row=NUM_CT_PER_COLUMN
 
                 ).contiguous()
                 
