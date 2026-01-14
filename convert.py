@@ -5,9 +5,9 @@ from pathlib import Path
 from q4nx import create_converter
 
 
-def convert_gguf_to_q4nx(gguf_path: str, q4nx_path: str):
+def convert_gguf_to_q4nx(gguf_path: str, q4nx_path: str, weights_type: str = 'language'):
     model = create_converter(gguf_path)
-    model.convert(q4nx_path)
+    model.convert(q4nx_path=q4nx_path, weights_type=weights_type)
 
 
 def main():
@@ -26,6 +26,8 @@ def main():
     parser.add_argument('output_folder', nargs='?', help='Output folder (positional, optional)')
     parser.add_argument('-i', '--input', dest='input_flag', help='Input GGUF file')
     parser.add_argument('-o', '--output', dest='output_flag', help='Output folder (optional, defaults to input file directory)')
+    parser.add_argument('-t', '--type', dest='weights_type', default='language', help='Type of weights to convert (default: language)',
+                        choices=['language', 'vision'])
     
     args = parser.parse_args()
     
@@ -48,7 +50,7 @@ def main():
         os.makedirs(output_dir, exist_ok=True)
     
     print(f"[INFO] Converting {input_path} to {output_folder}...")
-    convert_gguf_to_q4nx(input_path, output_folder)
+    convert_gguf_to_q4nx(input_path, output_folder, weights_type=args.weights_type)
     print(f"[INFO] Conversion complete! Output saved to {output_folder}")
 
 
@@ -57,7 +59,15 @@ if __name__ == "__main__":
     # import sys
     # sys.argv = ['convert.py', '-i', 'unsloth_gpt-oss-20b-Q4_0.gguf', '-o', 'unsloth-gotoss20b-q40']
             
+    import sys
+    # sys.argv = ['convert.py', '-i', 'gemma-3-4b-it-Q4_1.gguf', '-o', 'unsloth-gemma3-q41']    
+    # main()
+
+
+    # sys.argv = ['convert.py', '-i', 'gemma3-mmproj-BF16.gguf', '-o', 'unsloth-gemma3-vision', '-t', 'vision']
+    # main()
     
-    
-    main()
+
+    sys.argv = ['convert.py', '-i', 'medgemma3-mmproj-BF16.gguf', '-o', 'unsloth-medgemma3-vision', '-t', 'vision']
+    main()    
     #main()

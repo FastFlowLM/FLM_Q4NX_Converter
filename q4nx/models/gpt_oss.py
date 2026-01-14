@@ -218,7 +218,7 @@ class GPTOSS(__Q4NX_Converter, model_arch=ModelArch.GPT_OSS):
         result_tensors_map[new_name + "_prefill"] = original_weight.to(torch.bfloat16)
         
  
-    def convert(self, q4nx_path: str):
+    def convert(self, q4nx_path: str, weights_type: str = 'language'):
         self.q4nx_tensors = {}
 
         print("Enter into GPTOSS convert function")
