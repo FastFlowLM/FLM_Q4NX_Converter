@@ -8,6 +8,7 @@ __pycache__/
 *.py[codz]
 *$py.class
 .vscode/
+hf_cache/
 
 # C extensions
 *.so

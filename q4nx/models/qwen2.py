@@ -3,9 +3,10 @@ from ..constants import ModelArch
 from gguf import GGUFReader, dequantize, quantize
 from safetensors.torch import save_file
 import torch
-from gguf.constants import GGMLQuantizationType
+from gguf import dequantize
+from einops import rearrange
 
-class LFM2(__Q4NX_Converter, model_arch=ModelArch.LFM2):
+class Qwen2(__Q4NX_Converter, model_arch=ModelArch.QWEN2):
     def __init__(self, gguf_reader: GGUFReader):
         self.gguf_reader = gguf_reader
         self.gguf_tensors = []
@@ -19,7 +20,7 @@ class LFM2(__Q4NX_Converter, model_arch=ModelArch.LFM2):
 
         if not self._has_lm_head():
             print("[INFO] Model does not have a lm_head, use embedding weights as lm_head")
-            unpacked = self.gguf_tensors["token_embd.weight"].unpack(GGMLQuantizationType.Q4_1)
+            unpacked = self.gguf_tensors["token_embd.weight"].unpack(self.default_tensor_type)
             self.q4nx_tensors["lm_head.weight"] = self._pack_q4nx(*unpacked)
 
         for key, gguf_tensor in self.gguf_tensors.items():
@@ -30,6 +31,8 @@ class LFM2(__Q4NX_Converter, model_arch=ModelArch.LFM2):
                 continue
 
             unpacked = gguf_tensor.unpack(self.default_tensor_type)
+        
+
             self.q4nx_tensors[self.forward_name_map[gguf_tensor.name]] = self._pack_q4nx(*unpacked)
 
         self._export_q4nx_tensors(q4nx_path)
