@@ -5,7 +5,7 @@
         "parallel_size": 16,
         "keep_block_in_2D": false
     },
-    "default_tensor_type": "Q4_0",
+    "default_tensor_type": "Q4_1",
     "name_map": {
         "embedding": {
             "gguf_name": "token_embd.weight",

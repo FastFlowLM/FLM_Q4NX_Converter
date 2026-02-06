@@ -350,7 +350,10 @@ class __Q4NX_Converter(ABC):
             - m: (rows, cols // Q4_group_size) -> (rows // row_block_size, cols // (col_block_size * Q4_group_size), col_block_size // Q4_group_size, Q4_group_size)
         """
         Q4_group_size =  32
-        NUM_int4_in_byte = 2                
+        NUM_int4_in_byte = 2
+        d = d.contiguous()
+        m = m.contiguous() if m is not None else None
+        qw = qw.contiguous() if qw is not None else None
         
         if m is None: # not packed, could be a float or bf16 tensor
             return d.to(torch.bfloat16)

@@ -8,6 +8,7 @@ class ModelArch(IntEnum):
     QWEN3VL = auto()
     QWEN3   = auto()
     QWEN2   = auto()
+    QWEN2VL = auto()
     GEMMA3  = auto()
     LLAMA   = auto()
     LFM2    = auto()
@@ -17,7 +18,8 @@ class ModelArch(IntEnum):
 
 ModelArchNames: dict[ModelArch, list[str]] = {
     ModelArch.QWEN3VL: ["qwen3vl", "qwen3-vl"],
-    ModelArch.QWEN2:   ["qwen2", "qwen2vl"],
+    ModelArch.QWEN2:   ["qwen2"],
+    ModelArch.QWEN2VL: ["qwen2vl"],
     ModelArch.QWEN3:   ["qwen3"],
     ModelArch.GEMMA3:  ["gemma3", "Medgemma", "Gemma-3"],
     ModelArch.LLAMA:   ["llama"],
@@ -29,6 +31,7 @@ ModelArchNames: dict[ModelArch, list[str]] = {
 ModelArchConfigs: dict[ModelArch, str] = {
     ModelArch.QWEN3VL: "qwen3vl.json",
     ModelArch.QWEN2:   "qwen2.json",
+    ModelArch.QWEN2VL: "qwen2vl.json",
     ModelArch.QWEN3:   "qwen3.json",
     ModelArch.GEMMA3:  "gemma3.json",
     ModelArch.LLAMA:   "llama.json",

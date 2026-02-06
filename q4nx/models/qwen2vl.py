@@ -6,13 +6,14 @@ import torch
 from gguf import dequantize
 from einops import rearrange
 
-class Qwen2(__Q4NX_Converter, model_arch=ModelArch.QWEN2):
+class Qwen2VL(__Q4NX_Converter, model_arch=ModelArch.QWEN2VL):
     def __init__(self, gguf_reader: GGUFReader):
         self.gguf_reader = gguf_reader
         self.gguf_tensors = []
         self.initialize()
 
     def initialize(self):
+        print("[INFO] Initializing Qwen2VL converter...")
         super().initialize()
 
     def convert(self, q4nx_path: str, weights_type: str = 'language'):
@@ -31,7 +32,7 @@ class Qwen2(__Q4NX_Converter, model_arch=ModelArch.QWEN2):
                 continue
 
             unpacked = gguf_tensor.unpack(self.default_tensor_type)
-
+            
             if "ffn_down.weight" in gguf_tensor.name: # special padding to multiple of 512
                 d, m, q = unpacked
                 din = q.shape[1]
