@@ -18,8 +18,8 @@ class ModelArch(IntEnum):
 
 ModelArchNames: dict[ModelArch, list[str]] = {
     ModelArch.QWEN3VL: ["qwen3vl", "qwen3-vl"],
+    ModelArch.QWEN2VL: ["qwen2.5-Vl"],    
     ModelArch.QWEN2:   ["qwen2"],
-    ModelArch.QWEN2VL: ["qwen2vl"],
     ModelArch.QWEN3:   ["qwen3"],
     ModelArch.GEMMA3:  ["gemma3", "Medgemma", "Gemma-3"],
     ModelArch.LLAMA:   ["llama"],
