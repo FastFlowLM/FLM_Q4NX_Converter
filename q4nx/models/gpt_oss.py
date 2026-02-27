@@ -280,9 +280,9 @@ class GPTOSS(__Q4NX_Converter, model_arch=ModelArch.GPT_OSS):
         
         
         
-        # #FIXME: token_embed.weight dequant to bf16? But use python for now???
-        # safetensors_with_embed_tokens_weights = "/home/shouyud/FLM_Q4NX_Converter/model-00001-of-00001.safetensors"
-        # self.q4nx_tensors["model.embed_tokens.weight"] = load_file(safetensors_with_embed_tokens_weights)["model.embed_tokens.weight"]
+        #FIXME: token_embed.weight dequant to bf16? But use python for now???
+        safetensors_with_embed_tokens_weights = "/home/shouyud/FLM_Q4NX_Converter/model-00001-of-00001.safetensors"
+        self.q4nx_tensors["model.embed_tokens.weight"] = load_file(safetensors_with_embed_tokens_weights)["model.embed_tokens.weight"]
 
 
 
