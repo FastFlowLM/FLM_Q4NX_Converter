@@ -1,3 +1,4 @@
+import os
 from ..model_converter import __Q4NX_Converter
 from ..constants import ModelArch
 from gguf import GGUFReader, dequantize, quantize, GGMLQuantizationType
@@ -281,8 +282,11 @@ class GPTOSS(__Q4NX_Converter, model_arch=ModelArch.GPT_OSS):
         
         
         #FIXME: token_embed.weight dequant to bf16? But use python for now???
-        safetensors_with_embed_tokens_weights = "/home/shouyud/FLM_Q4NX_Converter/model-00001-of-00001.safetensors"
-        self.q4nx_tensors["model.embed_tokens.weight"] = load_file(safetensors_with_embed_tokens_weights)["model.embed_tokens.weight"]
+        safetensors_with_embed_tokens_weights = "model-00001-of-00001.safetensors"
+        if os.path.exists(safetensors_with_embed_tokens_weights):
+            self.q4nx_tensors["model.embed_tokens.weight"] = load_file(safetensors_with_embed_tokens_weights)["model.embed_tokens.weight"]
+        else:
+            print(f"[WARNING] {safetensors_with_embed_tokens_weights} not found. Skipping embed_tokens.weight replacement.")
 
 
 
