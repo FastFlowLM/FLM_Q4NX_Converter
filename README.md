@@ -71,4 +71,4 @@ python convert.py -i qwen3vl-4b-mmproj-BF16.gguf -o unsloth-qwen3vl-vision -t vi
 ## Known Issues
 - The converter currently only supports either Q4_0 or Q4_1 quantization format based on the setting in config files for each model.
 - For GPT-OSS:20B models, the converter currently uses the original `model.embed_tokens.weight` from the safetensors from OpenAI due to issues with Q4_1 quantization (from our experience, Q4_1 quantization messes up the quantization of the embedding layer for this model). 
-  - **Workaround:** Place the `model-00001-of-00001.safetensors` file in the root directory of this project before running the conversion for GPT-OSS. If the file is not found, the converter will print a warning and skip replacing the embedding weights. 
+  - **Workaround:** Place the [`model-00001-of-00001.safetensors`](https://huggingface.co/openai/gpt-oss-20b/tree/main) file in the root directory of this project before running the conversion for GPT-OSS. If the file is not found, the converter will print a warning and skip replacing the embedding weights. 
