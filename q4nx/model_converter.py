@@ -671,12 +671,13 @@ class __Q4NX_Converter(ABC):
         return added_tokens
 
 
-def get_model_arch_from_gguf(reader: GGUFReader) -> ModelArch:
+def get_model_arch_from_gguf(reader: GGUFReader, override_model_arch:str="") -> ModelArch:
     """
     Read the model architecture from a GGUF file.
     
     Args:
         gguf_path: Path to the GGUF file
+        override_model_arch: Non-empty string override this model architecture type
         
     Returns:
         ModelArch enum value
@@ -684,6 +685,14 @@ def get_model_arch_from_gguf(reader: GGUFReader) -> ModelArch:
     Raises:
         ValueError: If the architecture is not recognized or supported
     """
+    
+    if override_model_arch != "":
+        for arch_enum, arch_names in ModelArchNames.items():
+            for arch_name in arch_names:            
+                if override_model_arch.lower().startswith(arch_name.lower()):
+                    return arch_enum
+        print("Warning: Did not find matching override model arch, attempting to load base on gguf information")
+
     
     # Get architecture from GGUF metadata
     # The architecture is typically stored in the 'general.architecture' field
@@ -722,7 +731,7 @@ def get_registered_models() -> Dict[ModelArch, Type['__Q4NX_Converter']]:
     return _MODEL_REGISTRY.copy()
 
 
-def create_converter(gguf_path: str) -> __Q4NX_Converter:
+def create_converter(gguf_path: str, override_model_arch:str) -> __Q4NX_Converter:
     """
     Factory function to create the appropriate converter based on the GGUF model architecture.
     
@@ -742,7 +751,7 @@ def create_converter(gguf_path: str) -> __Q4NX_Converter:
     """
     # Read the architecture from the GGUF file
     reader = GGUFReader(gguf_path)
-    model_arch = get_model_arch_from_gguf(reader)
+    model_arch = get_model_arch_from_gguf(reader,override_model_arch )
     
     # Look up the appropriate converter class
     if model_arch not in _MODEL_REGISTRY:

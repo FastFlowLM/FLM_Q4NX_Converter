@@ -5,8 +5,8 @@ from pathlib import Path
 from q4nx import create_converter
 
 
-def convert_gguf_to_q4nx(gguf_path: str, q4nx_path: str, weights_type: str = 'language'):
-    model = create_converter(gguf_path)
+def convert_gguf_to_q4nx(gguf_path: str, q4nx_path: str, override_model_arch:str, weights_type: str = 'language'):
+    model = create_converter(gguf_path, override_model_arch)
     model.convert(q4nx_path=q4nx_path, weights_type=weights_type)
 
 
@@ -29,6 +29,7 @@ def main():
     parser.add_argument('-o', '--output', dest='output_flag', help='Output folder (optional, defaults to input file directory)')
     parser.add_argument('-t', '--type', dest='weights_type', default='language', help='Type of weights to convert (default: language)',
                         choices=['language', 'vision'])
+    parser.add_argument('-f', '--force', dest='force_model_type', default="", help="Model type. Empty string for automatic recognition from gguf file")
     
     args = parser.parse_args()
     
@@ -51,7 +52,7 @@ def main():
         os.makedirs(output_dir, exist_ok=True)
     
     print(f"[INFO] Converting {input_path} to {output_folder}...")
-    convert_gguf_to_q4nx(input_path, output_folder, weights_type=args.weights_type)
+    convert_gguf_to_q4nx(input_path, output_folder, args.force_model_type, weights_type=args.weights_type)
     print(f"[INFO] Conversion complete! Output saved to {output_folder}")
 
 

@@ -42,6 +42,7 @@ python convert.py [input_file] [output_folder] [-t TYPE]
 - `input_file` or `-i`, `--input`: Path to the input `.gguf` file.
 - `output_folder` or `-o`, `--output`: Path to the output folder. The output file will always be named `model.q4nx` (or `vision_weights.q4nx` depending on the type) inside this folder. Defaults to the input file's directory.
 - `-t`, `--type`: Type of weights to convert. Choices are `language` (default) or `vision`.
+- `-f`, `--force`: Override the model architecture type. By default, the converter automatically detects the architecture from the GGUF file metadata. Use this option to force a specific architecture (e.g., `qwen2`, `llama`, `gemma3`). Leave empty for automatic detection.
 
 ### Examples
 
@@ -59,6 +60,12 @@ python convert.py -i unsloth_gpt-oss-20b-Q4_0.gguf -o unsloth-gotoss20b-q40
 ```bash
 python convert.py -i qwen3vl-4b-mmproj-BF16.gguf -o unsloth-qwen3vl-vision -t vision
 ```
+
+**4. Force a specific model architecture:**
+```bash
+python convert.py -i model.gguf -o output_folder -f qwen2
+```
+This is useful when the GGUF file metadata doesn't correctly identify the architecture or when you want to override the automatic detection.
 
 ## Project Structure
 - `convert.py`: The main CLI script for running conversions.
