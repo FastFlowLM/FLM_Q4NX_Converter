@@ -3,6 +3,7 @@ gguf_files/
 q4nx_files/
 *.ipynb
 *.bin
+*.gguf
 venv/
 __pycache__/
 *.py[codz]

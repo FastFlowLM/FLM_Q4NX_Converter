@@ -12,5 +12,6 @@ from .qwen2vl import Qwen2VL
 from .gemma3 import Gemma3
 from .phi4 import Phi4
 from .gpt_oss import GPTOSS
+from .nanbeige import Nanbeige
 
-__all__ = ['Qwen3VL', 'Llama', 'LFM2', 'Qwen3', 'Qwen2', 'Qwen2VL', 'Gemma3', 'Phi4', 'GPTOSS']
+__all__ = ['Qwen3VL', 'Llama', 'LFM2', 'Qwen3', 'Qwen2', 'Qwen2VL', 'Gemma3', 'Phi4', 'GPTOSS', 'Nanbeige']

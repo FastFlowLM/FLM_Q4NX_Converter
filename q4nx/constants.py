@@ -14,6 +14,7 @@ class ModelArch(IntEnum):
     LFM2    = auto()
     PHI4    = auto()
     GPT_OSS = auto()
+    NANBEIGE = auto()
 
 
 ModelArchNames: dict[ModelArch, list[str]] = {
@@ -25,7 +26,8 @@ ModelArchNames: dict[ModelArch, list[str]] = {
     ModelArch.LLAMA:   ["llama"],
     ModelArch.LFM2:    ["lfm2"],
     ModelArch.PHI4:    ["phi3"],
-    ModelArch.GPT_OSS: ["gpt-oss"]
+    ModelArch.GPT_OSS: ["gpt-oss"],
+    ModelArch.NANBEIGE: ["nanbeige"]
 }
 
 ModelArchConfigs: dict[ModelArch, str] = {
@@ -37,5 +39,6 @@ ModelArchConfigs: dict[ModelArch, str] = {
     ModelArch.LLAMA:   "llama.json",
     ModelArch.LFM2:    "lfm2.json",
     ModelArch.PHI4:    "phi4.json",
-    ModelArch.GPT_OSS: "gpt-oss.json"
+    ModelArch.GPT_OSS: "gpt-oss.json",
+    ModelArch.NANBEIGE: "nanbeige.json"
 }
