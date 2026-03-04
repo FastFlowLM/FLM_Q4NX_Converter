@@ -67,7 +67,7 @@ class Qwen2VL(__Q4NX_Converter, model_arch=ModelArch.QWEN2VL):
         elif weights_type == "vision":
                 
             for key, gguf_tensor in self.gguf_tensors.items():
-                unpacked = gguf_tensor.unpack(GGMLQuantizationType.BF16)
+                unpacked, final_type = gguf_tensor.unpack(GGMLQuantizationType.BF16)
                 assert len(unpacked) == 1
                 assert type(unpacked[0]) == torch.Tensor, "Vision model tensors"
                 weights = unpacked[0]

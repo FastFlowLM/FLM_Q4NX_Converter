@@ -75,7 +75,7 @@ class GGUFTensor:
         return d, m, qs
     
     @staticmethod
-    def unpack_q8_0(tensors:np.ndarray):
+    def unpack_q8_0(tensors:np.ndarray, columns: int = None) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Split GGML Q8_0 data into scales and quantized values
 
         Parameters
@@ -88,14 +88,15 @@ class GGUFTensor:
 
         Returns
         -------
-        Tuple[torch.Tensor, torch.Tensor]
-            scales, data
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+            scales, data, columns
 
         Raises
         ------
         ValueError
             _description_
         """
+        block_size, type_size = GGML_QUANT_SIZES[GGMLQuantizationType.Q8_0]
         byte_per_blocks = 34
         assert tensors.dtype == np.uint8 or tensors.dtype == np.int8, "Input must be np.uint8 or np.int8"
         original_shape = tensors.shape
@@ -109,9 +110,16 @@ class GGUFTensor:
         
         # Use view() to reinterpret bytes as signed int8
         data = blocks[..., 2:].view(np.int8)
-        
-        
-        return torch.from_numpy(scales), torch.from_numpy(data)
+
+        d = torch.from_numpy(scales).contiguous().to(torch.float32)
+        m = torch.zeros_like(d)
+        qs = torch.from_numpy(data).contiguous().to(torch.int8)
+
+        d = d.view(-1, int(columns // block_size)).contiguous()
+        m = m.view(-1, int(columns // block_size)).contiguous()
+        qs = qs.view(-1, int(columns)).contiguous()
+
+        return d, m, qs
         
         
         
@@ -192,6 +200,12 @@ class GGUFTensor:
         w = torch.from_numpy(w).contiguous().to(torch.bfloat16)
         return w
 
+    def get_used_quantization_type(self, default_tensor_type: GGMLQuantizationType) -> GGMLQuantizationType:
+        if self.tensor_type in [GGMLQuantizationType.F32, GGMLQuantizationType.F16, GGMLQuantizationType.BF16, GGMLQuantizationType.Q4_0, GGMLQuantizationType.Q4_1, GGMLQuantizationType.Q8_0, GGMLQuantizationType.MXFP4]:
+            return self.tensor_type
+        else:
+            # For unsupported types, we will dequantize and then quantize to default_tensor_type
+            return default_tensor_type
 
     def unpack(self, default_tensor_type: GGMLQuantizationType) -> np.ndarray:
         if self.tensor_type == GGMLQuantizationType.F32:
@@ -205,6 +219,8 @@ class GGUFTensor:
             return self.unpack_q4_0(self.data, self.shape[0])
         elif self.tensor_type == GGMLQuantizationType.Q4_1:
             return self.unpack_q4_1(self.data, self.shape[0])
+        elif self.tensor_type == GGMLQuantizationType.Q8_0:
+            return self.unpack_q8_0(self.data, self.shape[0])
         elif self.tensor_type == GGMLQuantizationType.MXFP4:
             return self.unpack_mxfp4(self.data, self.shape[0])
         else:
@@ -223,6 +239,8 @@ class GGUFTensor:
                     d, m, qw = self.unpack_q4_1(data_quantized, self.shape[0])
                 elif default_tensor_type == GGMLQuantizationType.Q4_0:
                     d, m, qw = self.unpack_q4_0(data_quantized, self.shape[0])
+                elif default_tensor_type == GGMLQuantizationType.Q8_0:
+                    d, m, qw = self.unpack_q8_0(data_quantized, self.shape[0])
                 else:
                     raise ValueError(f"Unsupported tensor type: {default_tensor_type.name}")
                 return d, m, qw
