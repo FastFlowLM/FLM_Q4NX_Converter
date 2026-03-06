@@ -2,6 +2,7 @@ from ..model_converter import __Q4NX_Converter
 from ..constants import ModelArch
 from gguf import GGUFReader, dequantize, quantize, GGMLQuantizationType
 from safetensors.torch import save_file
+from einops import rearrange
 import torch
 
 class Qwen35(__Q4NX_Converter, model_arch=ModelArch.QWEN35):
@@ -29,8 +30,19 @@ class Qwen35(__Q4NX_Converter, model_arch=ModelArch.QWEN35):
                     w = torch.from_numpy(w).contiguous().to(torch.bfloat16)
                     self.q4nx_tensors[self.forward_name_map[gguf_tensor.name]] = w
                     continue
-
+                
                 unpacked = gguf_tensor.unpack(self.default_tensor_type)
+                
+                if "q_proj" in self.forward_name_map[gguf_tensor.name]: # for llama q_proj, the order is special
+                    print("[INFO] Seperate q, gate for q_proj")
+                    DH = self.gguf_reader.fields["qwen35.attention.value_length"].contents()
+                    d, m, qw = unpacked
+                    d = rearrange(d, '(g p h) c -> (p g h) c', p = 2, h = DH).contiguous()
+                    m = rearrange(m, '(g p h) c -> (p g h) c', p = 2, h = DH).contiguous()
+                    qw = rearrange(qw, '(g p h) c -> (p g h) c', p = 2, h = DH).contiguous()
+                    unpacked = (d, m, qw)
+
+
                 self.q4nx_tensors[self.forward_name_map[gguf_tensor.name]] = self._pack(*unpacked, tensor_type=target_dtype)
             self._extract_tokenizer_json(q4nx_path)                
         elif weights_type == "vision":
