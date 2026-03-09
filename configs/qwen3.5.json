@@ -5,6 +5,10 @@
         "parallel_size": 16,
         "keep_block_in_2D": true
     },
+    "vision_config":{
+        "vision_MM_K": 512,
+        "vision_MM_N": 64
+    },        
     "default_tensor_type": "Q8_0",
     "name_map": {
         "embedding": {
@@ -98,6 +102,101 @@
         "lm_head": {
             "gguf_name": "output.weight",
             "q4nx_name": "lm_head.weight"
+        },
+
+
+        "vision_position_embed":{
+            "gguf_name": "v.position_embd.weight",
+            "q4nx_name": "model.visual.pos_embed.weight"
+        },
+        "vision_patch_embd_weight":{
+            "gguf_name":"v.patch_embd.weight",
+            "q4nx_name": "model.visual.patch_embed.proj.weight"
+        },
+        "vision_patch_embd_weight1":{
+            "gguf_name":"v.patch_embd.weight.1",
+            "q4nx_name": "model.visual.patch_embed.proj.weight.1"
+        },
+        "vision_patch_embd_bias":{
+            "gguf_name": "v.patch_embd.bias",
+            "q4nx_name": "model.visual.patch_embed.proj.bias"
+        },
+        "visual_merger_norm_weight":{
+            "gguf_name": "v.post_ln.weight",
+            "q4nx_name": "model.visual.merger.norm.weight"
+        },
+        "visual_merger_norm_bias":{
+            "gguf_name": "v.post_ln.bias",
+            "q4nx_name": "model.visual.merger.norm.bias"
+        },
+        "visual_merger_linear_fc1_weight":{
+            "gguf_name": "mm.0.weight",
+            "q4nx_name": "model.visual.merger.linear_fc1.weight"
+        },
+        "visual_merger_linear_fc1_bias":{
+            "gguf_name": "mm.0.bias",
+            "q4nx_name": "model.visual.merger.linear_fc1.bias"
+        },
+        "visual_merger_linear_fc2_weight":{
+            "gguf_name":"mm.2.weight",
+            "q4nx_name":"model.visual.merger.linear_fc2.weight"
+        },
+        "visual_merger_linear_fc2_bias":{
+            "gguf_name":"mm.2.bias",
+            "q4nx_name":"model.visual.merger.linear_fc2.bias"
+        },
+
+
+        "visual_attn_out_bias":{
+            "gguf_name" : "v.blk.{bid}.attn_out.bias",
+            "q4nx_name" : "model.visual.blocks.{bid}.attn.proj.bias"
+        },
+        "visual_attn_out_weight":{
+            "gguf_name" : "v.blk.{bid}.attn_out.weight",
+            "q4nx_name" : "model.visual.blocks.{bid}.attn.proj.weight"
+        },
+        "visual_attn_qkv_bias":{
+            "gguf_name" : "v.blk.{bid}.attn_qkv.bias",
+            "q4nx_name" : "model.visual.blocks.{bid}.attn.qkv.bias"
+        },
+        "visual_attn_qkv_weight":{
+            "gguf_name" : "v.blk.{bid}.attn_qkv.weight",
+            "q4nx_name" : "model.visual.blocks.{bid}.attn.qkv.weight"
+        },
+        "visual_mlp_fc1_bias":{
+            "gguf_name" : "v.blk.{bid}.ffn_up.bias",
+            "q4nx_name" : "model.visual.blocks.{bid}.mlp.linear_fc1.bias"
+        },
+        "visual_mlp_fc1_weight":{
+            "gguf_name" : "v.blk.{bid}.ffn_up.weight",
+            "q4nx_name" : "model.visual.blocks.{bid}.mlp.linear_fc1.weight"
+        },
+        "visual_mlp_fc2_weight":{
+            "gguf_name" : "v.blk.{bid}.ffn_down.weight",
+            "q4nx_name" : "model.visual.blocks.{bid}.mlp.linear_fc2.weight"
+        },
+        "visual_mlp_fc2_bias":{
+            "gguf_name" : "v.blk.{bid}.ffn_down.bias",
+            "q4nx_name" : "model.visual.blocks.{bid}.mlp.linear_fc2.bias"
+        },
+        "visual_ln1_bias":{
+            "gguf_name" : "v.blk.{bid}.ln1.bias",
+            "q4nx_name" : "model.visual.blocks.{bid}.norm1.bias"
+        },
+        "visual_ln1_weight":{
+            "gguf_name" : "v.blk.{bid}.ln1.weight",
+            "q4nx_name" : "model.visual.blocks.{bid}.norm1.weight"
+        },
+        "visual_ln2_bias":{
+            "gguf_name" : "v.blk.{bid}.ln2.bias",
+            "q4nx_name" : "model.visual.blocks.{bid}.norm2.bias"
+        },
+        "visual_ln2_weight":{
+            "gguf_name" : "v.blk.{bid}.ln2.weight",
+            "q4nx_name" : "model.visual.blocks.{bid}.norm2.weight"
         }
+
+
+
     }
 }
