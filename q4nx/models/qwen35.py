@@ -1,3 +1,5 @@
+from pprint import pp
+
 from ..model_converter import __Q4NX_Converter
 from ..constants import ModelArch
 from gguf import GGUFReader, dequantize, quantize, GGMLQuantizationType
@@ -15,12 +17,14 @@ class Qwen35(__Q4NX_Converter, model_arch=ModelArch.QWEN35):
         super().initialize()
 
     def convert(self, q4nx_path: str, weights_type: str = 'language'):
+        full_attntion_interval = self.gguf_reader.fields["qwen35.full_attention_interval"].contents()
         self.q4nx_tensors = {}
         if weights_type == "language":
             if not self._has_lm_head():
                 print("[INFO] Model does not have a lm_head, use embedding weights as lm_head")
                 unpacked = self.gguf_tensors["token_embd.weight"].unpack(self.default_tensor_type)
-                self.q4nx_tensors["lm_head.weight"] = self._pack_q4nx(*unpacked)
+                target_dtype = self.gguf_tensors["token_embd.weight"].get_used_quantization_type(self.default_tensor_type)
+                self.q4nx_tensors["lm_head.weight"] = self._pack(*unpacked, tensor_type=target_dtype)
 
             for key, gguf_tensor in self.gguf_tensors.items():
                 target_dtype = gguf_tensor.get_used_quantization_type(self.default_tensor_type)
@@ -31,17 +35,99 @@ class Qwen35(__Q4NX_Converter, model_arch=ModelArch.QWEN35):
                     self.q4nx_tensors[self.forward_name_map[gguf_tensor.name]] = w
                     continue
                 
-                unpacked = gguf_tensor.unpack(self.default_tensor_type)
-                
-                if "q_proj" in self.forward_name_map[gguf_tensor.name]: # for llama q_proj, the order is special
-                    print("[INFO] Seperate q, gate for q_proj")
-                    DH = self.gguf_reader.fields["qwen35.attention.value_length"].contents()
-                    d, m, qw = unpacked
-                    d = rearrange(d, '(g p h) c -> (p g h) c', p = 2, h = DH).contiguous()
-                    m = rearrange(m, '(g p h) c -> (p g h) c', p = 2, h = DH).contiguous()
-                    qw = rearrange(qw, '(g p h) c -> (p g h) c', p = 2, h = DH).contiguous()
-                    unpacked = (d, m, qw)
+                new_name = self.forward_name_map[gguf_tensor.name]
+                layer_id = 0
+                if "layers." in new_name:
+                    layer_id = int(new_name.split("layers.")[1].split(".")[0])
 
+                unpacked = gguf_tensor.unpack(self.default_tensor_type)
+
+                if layer_id % full_attntion_interval == (full_attntion_interval - 1):    
+                    if "q_proj" in self.forward_name_map[gguf_tensor.name]: # for llama q_proj, the order is special
+                        print("[INFO] Seperate q, gate for q_proj")
+                        DH = self.gguf_reader.fields["qwen35.attention.value_length"].contents()
+                        d, m, qw = unpacked
+                        d = rearrange(d, '(g p h) c -> (p g h) c', p = 2, h = DH).contiguous()
+                        m = rearrange(m, '(g p h) c -> (p g h) c', p = 2, h = DH).contiguous()
+                        qw = rearrange(qw, '(g p h) c -> (p g h) c', p = 2, h = DH).contiguous()
+                        unpacked = (d, m, qw)
+
+                else: # linear attention
+                    if "self_attn.gate_proj" in self.forward_name_map[gguf_tensor.name]: # for llama q_proj, the order is special
+                        print("[INFO] Reorder Gate")
+                        DH = self.gguf_reader.fields["qwen35.ssm.state_size"].contents()
+                        d, m, qw = unpacked
+                        d = rearrange(d, '(q g p) c -> (g q p) c', p = DH, q = 2).contiguous()
+                        m = rearrange(m, '(q g p) c -> (g q p) c', p = DH, q = 2).contiguous()
+                        qw = rearrange(qw, '(q g p) c -> (g q p) c', p = DH, q = 2).contiguous()
+                        unpacked = (d, m, qw)
+
+                    if "qkv_proj" in self.forward_name_map[gguf_tensor.name]: # for llama q_proj, the order is special
+                        print("[INFO] Seperate q, gate for q_proj")
+                        DH = self.gguf_reader.fields["qwen35.ssm.state_size"].contents()
+                        d, m, qw = unpacked
+                        d0, d1 = d.chunk(2, dim = 0)
+                        m0, m1 = m.chunk(2, dim = 0)
+                        qw0, qw1 = qw.chunk(2, dim = 0)
+                        print(d0.shape, d1.shape, m0.shape, m1.shape, qw0.shape, qw1.shape)
+                        pp = DH
+
+                        d1 = rearrange(d1, '(q g p) c -> (g q p) c', p = pp, q = 2).contiguous()
+                        m1 = rearrange(m1, '(q g p) c -> (g q p) c', p = pp, q = 2).contiguous()
+                        qw1 = rearrange(qw1, '(q g p) c -> (g q p) c', p = pp, q = 2).contiguous()
+
+                        d = torch.cat([d0, d1], dim = 0).contiguous()
+                        m = torch.cat([m0, m1], dim = 0).contiguous()
+                        qw = torch.cat([qw0, qw1], dim = 0).contiguous()
+                        unpacked = (d, m, qw)
+
+                    if "ssm_out_proj" in self.forward_name_map[gguf_tensor.name]: # for ssm_alpha_proj, the order is special
+                        print(f"[INFO] Reorder for {self.forward_name_map[gguf_tensor.name]}")
+                        d, m, qw = unpacked
+                        DH = self.gguf_reader.fields["qwen35.ssm.state_size"].contents()
+                        DH = DH // 32 # reorder in group size
+                        d = rearrange(d, 'r (q g p) c -> r (g q p) c', p = DH, q = 2).contiguous()
+                        m = rearrange(m, 'r (q g p) c -> r (g q p) c', p = DH, q = 2).contiguous()
+                        qw = rearrange(qw, 'r (q g p) c -> r (g q p) c', p = DH, q = 2).contiguous()
+
+                        unpacked = (d, m, qw)
+
+                    if "ssm_alpha_proj" in self.forward_name_map[gguf_tensor.name] or "ssm_beta_proj" in self.forward_name_map[gguf_tensor.name]: # for ssm_alpha_proj, the order is special
+                        d, m, qw = unpacked
+
+                        print(f"[INFO] Reorder for {self.forward_name_map[gguf_tensor.name]}")
+
+                        d = rearrange(d, '(q g) c l -> (g q) c l', q = 2).contiguous()
+                        m = rearrange(m, '(q g) c l -> (g q) c l', q = 2).contiguous()
+                        qw = rearrange(qw, '(q g) c l -> (g q) c l', q = 2).contiguous()
+
+                        unpacked = (d, m, qw)
+
+
+                    if "ssm_conv1d" in self.forward_name_map[gguf_tensor.name]:
+                        print("[INFO] transpose conv1d")
+
+                        DH = self.gguf_reader.fields["qwen35.ssm.state_size"].contents()
+                        d = unpacked[0]
+                        
+                        d0, d1 = d.chunk(2, dim = 0)
+                        d1 = rearrange(d1, '(q g p) c -> (g q p) c', p = DH, q = 2).contiguous()
+                        d = torch.cat([d0, d1], dim = 0).contiguous()
+                        print(d.shape)
+                        d = d.T.contiguous()
+                        unpacked = [d]
+                
+                    if "ssm_a" in gguf_tensor.name[-5:]: # [-5:] to avoid confusing with "ssm_alpha_proj" or "ssm_dt_proj"
+                        val = unpacked[0].to(torch.float32).contiguous()
+                        val = rearrange(val, '(q g) -> (g q)', q = 2).contiguous() # for ssm_a, we also need to reorder the g and p dim
+                        self.q4nx_tensors[self.forward_name_map[gguf_tensor.name]] = val
+                        continue
+
+                    if "ssm_dt" in gguf_tensor.name: # [-5:] to avoid confusing with "ssm_alpha_proj" or "ssm_dt_proj"
+                        val = unpacked[0].to(torch.float32).contiguous()
+                        val = rearrange(val, '(q g) -> (g q)', q = 2).contiguous() # for ssm_dt, we also need to reorder the g and p dim
+                        self.q4nx_tensors[self.forward_name_map[gguf_tensor.name]] = val
+                        continue
 
                 self.q4nx_tensors[self.forward_name_map[gguf_tensor.name]] = self._pack(*unpacked, tensor_type=target_dtype)
             self._extract_tokenizer_json(q4nx_path)                

@@ -344,6 +344,7 @@ class __Q4NX_Converter(ABC):
             # TODO: FIXME: DEBUG force convert Q80
             w = dequantize(tensor_data.data, tensor_data.tensor_type)
             w = torch.from_numpy(w).contiguous().to(torch.bfloat16)
+            print(w)
             w = w.to(dtype=torch.float32).numpy()
             
             data_q80 = quantize(w, GGMLQuantizationType.Q8_0).copy()
