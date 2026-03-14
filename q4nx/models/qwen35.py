@@ -94,6 +94,13 @@ class Qwen35(__Q4NX_Converter, model_arch=ModelArch.QWEN35):
 
                     if "ssm_alpha_proj" in self.forward_name_map[gguf_tensor.name] or "ssm_beta_proj" in self.forward_name_map[gguf_tensor.name]: # for ssm_alpha_proj, the order is special
                         d, m, qw = unpacked
+                        # save bf16 copy
+                        w = gguf_tensor.dequantize()
+                        w = rearrange(w, '(q g) c -> (g q) c', q = 2).contiguous()
+
+                        new_name = self.forward_name_map[gguf_tensor.name]
+                        new_name = new_name.replace("alpha_proj", "alpha_proj.bf16").replace("beta_proj", "beta_proj.bf16")
+                        self.q4nx_tensors[new_name] = w
 
                         print(f"[INFO] Reorder for {self.forward_name_map[gguf_tensor.name]}")
 
@@ -112,8 +119,8 @@ class Qwen35(__Q4NX_Converter, model_arch=ModelArch.QWEN35):
                         
                         d0, d1 = d.chunk(2, dim = 0)
                         d1 = rearrange(d1, '(q g p) c -> (g q p) c', p = DH, q = 2).contiguous()
+                        
                         d = torch.cat([d0, d1], dim = 0).contiguous()
-                        print(d.shape)
                         d = d.T.contiguous()
                         unpacked = [d]
                 
