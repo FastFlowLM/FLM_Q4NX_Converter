@@ -7,6 +7,7 @@ from .qwen3vl import Qwen3VL
 from .llama import Llama
 from .lfm2 import LFM2
 from .qwen3 import Qwen3
+from .qwen35 import Qwen35
 from .qwen2 import Qwen2
 from .qwen2vl import Qwen2VL
 from .gemma3 import Gemma3

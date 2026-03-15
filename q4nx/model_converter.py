@@ -8,14 +8,15 @@ from .gguf_tensor import GGUFTensor, GGMLQuantizationType
 from typing import List, Dict, Type
 import os
 import json
-
+import torch.nn.functional as F
 from einops import rearrange
 import torch
 import torch.nn.functional as F
 import numpy as np
 from .utils import round_up_to_multiple, get_relativeL2, get_relativeL1, get_rmse, get_cosine_similarity, create_dir_if_not_exists
 from safetensors.torch import save_file
-
+from q4nx.gguf_tensor import GGUFTensor
+from gguf import Q8_0, GGUFReader, dequantize, quantize, GGMLQuantizationType
 # Registry to store model classes by architecture
 _MODEL_REGISTRY: Dict[ModelArch, Type['__Q4NX_Converter']] = {}
 
@@ -101,6 +102,8 @@ class __Q4NX_Converter(ABC):
             self.default_tensor_type = GGMLQuantizationType.Q4_0
         elif self.q4nx_config["default_tensor_type"] == "Q4_1":
             self.default_tensor_type = GGMLQuantizationType.Q4_1
+        elif self.q4nx_config["default_tensor_type"] == "Q8_0":
+            self.default_tensor_type = GGMLQuantizationType.Q8_0
         else:
             raise ValueError("Unsupported default_tensor_type in config")
         
@@ -334,7 +337,214 @@ class __Q4NX_Converter(ABC):
         merged = torch.cat([scales, data], dim=-1).contiguous()
         return merged
         
+    
+  
+    def force_pack_q8_to_q4nx_size(self, tensor_data:GGUFTensor):
         
+            # TODO: FIXME: DEBUG force convert Q80
+            w = dequantize(tensor_data.data, tensor_data.tensor_type)
+            w = torch.from_numpy(w).contiguous().to(torch.bfloat16)
+            print(w)
+            w = w.to(dtype=torch.float32).numpy()
+            
+            data_q80 = quantize(w, GGMLQuantizationType.Q8_0).copy()
+            # create a new GGUF type
+            data_q80_gguf = GGUFTensor("data_q80", data_q80.shape, data_q80, GGMLQuantizationType.Q8_0)
+                        
+            unpacked =data_q80_gguf.unpack(self.default_tensor_type)
+
+            
+            # override to turn keep_block_in_2D = True
+            old_keep_block_in_2D =  self.keep_block_in_2D
+            self.keep_block_in_2D = True
+            val = self._pack_q4nx_8b(*unpacked)
+            self.keep_block_in_2D = old_keep_block_in_2D
+            
+            return val
+            # scales, data = GGUFTensor.unpack_q8_0( data_q80)
+            
+            # m_tmp = scales.clone()
+            
+            # # override 
+
+            # col_block_size_old = self.col_block_size
+            # keep_block_in_2D_old = self.keep_block_in_2D
+            
+            # cur_q4nx_block_byte_size = int(( self.row_block_size* col_block_size_old   )*(5/8) )
+            
+            # if col_block_size_old == 256:
+            #     self.col_block_size= 128
+            # else:
+            #     #TODO:
+            #     raise ValueError("Undefine case for now")
+            # self.keep_block_in_2D= True
+            # q8nx_pack_result  = self._pack_q8nx(
+            #     scales, m_tmp, data
+            # )
+            
+            # # now, we want to padd the last dimension to be size of 5120(for q4nx)
+            # # Pad the last dimension from 4608 to 5120
+
+            
+            # padding_size = cur_q4nx_block_byte_size    - q8nx_pack_result.shape[-1]
+            # q8nx_pack_result = F.pad(q8nx_pack_result, (0, padding_size))
+            
+            # self.keep_block_in_2D = keep_block_in_2D_old
+            # self.col_block_size = col_block_size_old
+            # return q8nx_pack_result
+            
+            
+    def _pack(self, d: torch.Tensor, m: torch.Tensor = None, qw: torch.Tensor = None, tensor_type: GGMLQuantizationType = None) -> torch.Tensor:
+        if tensor_type == GGMLQuantizationType.Q8_0:
+            return self._pack_q4nx_8b(d, m, qw)
+        else:
+            return self._pack_q4nx(d, m, qw)
+        
+    
+    def _pack_q4nx_8b(self,  d: torch.Tensor,m: torch.Tensor, qw:torch.Tensor) -> torch.Tensor:
+        #note, support q80 for now
+        # d for scale
+        # m for min
+        
+        # TODO: NOTE:
+        col_block_size_old = self.col_block_size
+        keep_block_in_2D_old = self.keep_block_in_2D        
+        if self.col_block_size == 256:
+            # force to 128 
+            self.col_block_size= 128            
+        else:
+            raise ValueError("Undefine case for now")
+        self.keep_block_in_2D= True
+        
+        cur_q4nx_block_byte_size = int(( self.row_block_size* col_block_size_old   )*(5/8) )
+                    
+        q8nx_pack_result = self._pack_q8nx(data=qw, scales=d, m = m )
+
+        padding_size = cur_q4nx_block_byte_size    - q8nx_pack_result.shape[-1]
+        q8nx_pack_result = F.pad(q8nx_pack_result, (0, padding_size))
+        
+        self.keep_block_in_2D = keep_block_in_2D_old
+        self.col_block_size = col_block_size_old
+        return q8nx_pack_result
+        
+    def _pack_q8nx(self,  data: torch.Tensor,scales: torch.Tensor, m:torch.Tensor) -> torch.Tensor:
+        #note, support q80 for now
+        """ Q8NX format similar to Q4NX
+
+        Q8NX format:
+            - chunk shape: row_block_size x col_block_size
+            - scale shape: (col_block_size // Q8_group_size) x row_block_size
+            - m shape: (col_block_size // Q8_group_size) x row_block_size
+            - quant shape: (row_block_size // parallel) x col_block_size x (parallel) #NOTE: num_int8_in_byte is 1 for Q8
+        
+        
+        Parameters
+        ----------
+        scales : torch.Tensor
+            _description_
+        data : torch.Tensor
+            _description_
+
+        Returns
+        -------
+        torch.Tensor
+            _description_
+            
+        Notes
+        -------
+        Only support Q8_0 for now
+        """
+        
+        
+        Q8_group_size =  32
+        assert len(scales.shape) == 3
+        assert len(data.shape) ==3
+        # data are shape of [row, col//Q8_group_size, Q8_group_size]
+        # merge last two dim of scales and data
+        scales = scales.reshape(*scales.shape[:-2], -1).contiguous()
+        data = data.reshape(*data.shape[:-2], -1).contiguous()
+        m = m.reshape(*m.shape[:-2], -1).contiguous()
+        
+        rows, cols = data.shape[0], data.shape[1]
+        
+        
+
+        
+        if cols % self.col_block_size != 0:
+            cols_padded = round_up_to_multiple(cols, self.col_block_size)
+            
+            scale_pad_amount = (cols_padded -cols) // Q8_group_size
+            data_pad_amount = cols_padded - cols
+            
+            scales = F.pad(scales, (0, scale_pad_amount), "constant", 0)
+            m = F.pad(m, (0, scale_pad_amount), "constant", 0)
+            data = F.pad(data, (0, data_pad_amount), "constant", 0)
+        
+
+        
+        if self.keep_block_in_2D:
+            
+            # does two things
+            # 1. split scales to logical block of (row_div_r, col_div_c, r, c) but in row major order
+            # 2. change the block of (r,c) to column major order as (c,r)
+            scales = rearrange(
+                scales,
+                "(row_div_r r) (col_div_c c) -> row_div_r col_div_c (c r)",
+                r=self.row_block_size,
+                c=self.col_block_size // Q8_group_size
+
+            ).contiguous()
+            
+            m = rearrange(
+                m,
+                "(row_div_r r) (col_div_c c) -> row_div_r col_div_c (c r)",
+                r=self.row_block_size,
+                c=self.col_block_size // Q8_group_size                
+            ).contiguous()
+            
+            assert self.row_block_size % self.parallel_size == 0
+            # similar, for the data block
+            data = rearrange(
+                data,
+                "(row_div_r r) (col_div_c c) -> row_div_r col_div_c r c",
+                r=self.row_block_size,
+                c=self.col_block_size 
+            ).contiguous()
+            # at this point, data is in row major order within each block
+            
+            data = rearrange(
+                data,
+                #" row_div_r col_div_c (r_div_parallel parallel) c -> row_div_r col_div_c (c r_div_parallel parallel)",
+                
+                "row_div_r col_div_c (r_div_parallel parallel) c -> row_div_r col_div_c (r_div_parallel c parallel)",
+                parallel=self.parallel_size,
+            )
+            # at this point, data is in column major order within each block, and strided by parallel size
+            
+            # now, convert scales from float16 to bfloat16
+            assert(scales.dtype == torch.float16)
+            scales = scales.to(torch.bfloat16)
+            
+            # also convert m from float16 to bfloat16
+            assert(m.dtype == torch.float16)
+            m = m.to(torch.bfloat16)
+        
+            
+        else:
+            raise ValueError("Only support keep_block_in_2D for now")
+        
+        scales = scales.view(torch.int8)
+        m = m.view(torch.int8)
+        data = data.view(torch.int8)
+        
+        scales_np = scales.numpy()
+        m_np = m.numpy()
+        data_np = data.numpy()
+        # do  a copy of scales_np for now, for padding space
+        merged = np.concatenate([scales_np,  m_np, data_np], axis = -1).copy()
+        
+        return torch.from_numpy(merged)       
+    
     def _pack_q4nx(self, d: torch.Tensor, m: torch.Tensor = None, qw: torch.Tensor = None) -> torch.Tensor:
         """
 
