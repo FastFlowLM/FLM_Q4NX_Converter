@@ -4,7 +4,7 @@ from ..model_converter import __Q4NX_Converter
 from ..constants import ModelArch
 from gguf import GGUFReader, dequantize, quantize, GGMLQuantizationType
 from safetensors.torch import save_file
-from einops import rearrange
+from einops import rearrange, repeat
 import torch
 
 class Qwen35(__Q4NX_Converter, model_arch=ModelArch.QWEN35):
@@ -107,6 +107,11 @@ class Qwen35(__Q4NX_Converter, model_arch=ModelArch.QWEN35):
                         d = rearrange(d, '(q g) c l -> (g q) c l', q = 2).contiguous()
                         m = rearrange(m, '(q g) c l -> (g q) c l', q = 2).contiguous()
                         qw = rearrange(qw, '(q g) c l -> (g q) c l', q = 2).contiguous()
+
+                        if (d.shape[0] < 32): # duplicate on the first dimension (d c l -> (2 d) c l) for better performance when the state size is small
+                            d = repeat(d, 'd c l -> (r d) c l', r = 2).contiguous()
+                            m = repeat(m, 'd c l -> (r d) c l', r = 2).contiguous()
+                            qw = repeat(qw, 'd c l -> (r d) c l', r = 2).contiguous()
 
                         unpacked = (d, m, qw)
 
