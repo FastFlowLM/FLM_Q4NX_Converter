@@ -7,8 +7,9 @@ from safetensors.torch import save_file
 from einops import rearrange, repeat
 import torch
 
-class Qwen35(__Q4NX_Converter, model_arch=ModelArch.QWEN35):
+class Qwen35(__Q4NX_Converter, model_arch=ModelArch.QWEN35_4B):
     def __init__(self, gguf_reader: GGUFReader):
+        print("[INFO] Using Qwen35_4B converter")
         self.gguf_reader = gguf_reader
         self.gguf_tensors = []
         self.initialize()
@@ -17,9 +18,10 @@ class Qwen35(__Q4NX_Converter, model_arch=ModelArch.QWEN35):
         super().initialize()
 
     def convert(self, q4nx_path: str, weights_type: str = 'language'):
-        full_attntion_interval = self.gguf_reader.fields["qwen35.full_attention_interval"].contents()
+
         self.q4nx_tensors = {}
         if weights_type == "language":
+            full_attntion_interval = self.gguf_reader.fields["qwen35.full_attention_interval"].contents()            
             if not self._has_lm_head():
                 print("[INFO] Model does not have a lm_head, use embedding weights as lm_head")
                 unpacked = self.gguf_tensors["token_embd.weight"].unpack(self.default_tensor_type)
@@ -178,3 +180,7 @@ class Qwen35(__Q4NX_Converter, model_arch=ModelArch.QWEN35):
             raise ValueError(f"Unsupported weights_type: {weights_type} for Qwen35 model")
 
         self._export_q4nx_tensors(q4nx_path)
+
+class Qwen35_9B(Qwen35, model_arch=ModelArch.QWEN35_9B):
+    print("[INFO] Using Qwen35_9B converter")
+    pass

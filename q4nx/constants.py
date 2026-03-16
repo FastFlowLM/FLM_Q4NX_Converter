@@ -7,7 +7,8 @@ import numpy as np
 class ModelArch(IntEnum):
     QWEN3VL = auto()
     QWEN3   = auto()
-    QWEN35   = auto()
+    QWEN35_4B = auto()
+    QWEN35_9B = auto()
     QWEN2   = auto()
     QWEN2VL = auto()
     GEMMA3  = auto()
@@ -19,7 +20,8 @@ class ModelArch(IntEnum):
 
 
 ModelArchNames: dict[ModelArch, list[str]] = {
-    ModelArch.QWEN35:  ["qwen35","qwen3.5"],    
+    ModelArch.QWEN35_4B:  ["qwen35-4B","qwen3.5-4B"],    
+    ModelArch.QWEN35_9B:  ["qwen35-9B","qwen3.5-9B"],       
     ModelArch.QWEN3VL: ["qwen3vl", "qwen3-vl"],
     ModelArch.QWEN2VL: ["qwen2.5-Vl"],    
     ModelArch.QWEN2:   ["qwen2"],
@@ -37,7 +39,8 @@ ModelArchConfigs: dict[ModelArch, str] = {
     ModelArch.QWEN2:   "qwen2.json",
     ModelArch.QWEN2VL: "qwen2vl.json",
     ModelArch.QWEN3:   "qwen3.json",
-    ModelArch.QWEN35:  "qwen3.5.json",
+    ModelArch.QWEN35_4B: "qwen3.5_4b.json",
+    ModelArch.QWEN35_9B: "qwen3.5_9b.json",
     ModelArch.GEMMA3:  "gemma3.json",
     ModelArch.LLAMA:   "llama.json",
     ModelArch.LFM2:    "lfm2.json",
