@@ -427,14 +427,14 @@ class __Q4NX_Converter(ABC):
         self.col_block_size = col_block_size_old
         return q8nx_pack_result
         
-    def _pack_q8nx(self,  data: torch.Tensor,scales: torch.Tensor, m:torch.Tensor) -> torch.Tensor:
+    def _pack_q8nx(self,  data: torch.Tensor,scales: torch.Tensor, m:torch.Tensor|None=None) -> torch.Tensor:
         #note, support q80 for now
         """ Q8NX format similar to Q4NX
 
         Q8NX format:
             - chunk shape: row_block_size x col_block_size
             - scale shape: (col_block_size // Q8_group_size) x row_block_size
-            - m shape: (col_block_size // Q8_group_size) x row_block_size
+            - m shape: (col_block_size // Q8_group_size) x row_block_size  //NOTE: this does not exist in real Q80, but exist for q81 if needed in future
             - quant shape: (row_block_size // parallel) x col_block_size x (parallel) #NOTE: num_int8_in_byte is 1 for Q8
         
         
@@ -463,7 +463,8 @@ class __Q4NX_Converter(ABC):
         # merge last two dim of scales and data
         scales = scales.reshape(*scales.shape[:-2], -1).contiguous()
         data = data.reshape(*data.shape[:-2], -1).contiguous()
-        m = m.reshape(*m.shape[:-2], -1).contiguous()
+        if m is not None:
+            m = m.reshape(*m.shape[:-2], -1).contiguous()
         
         rows, cols = data.shape[0], data.shape[1]
         
@@ -477,7 +478,8 @@ class __Q4NX_Converter(ABC):
             data_pad_amount = cols_padded - cols
             
             scales = F.pad(scales, (0, scale_pad_amount), "constant", 0)
-            m = F.pad(m, (0, scale_pad_amount), "constant", 0)
+            if m is not None:
+                m = F.pad(m, (0, scale_pad_amount), "constant", 0)
             data = F.pad(data, (0, data_pad_amount), "constant", 0)
         
 
@@ -494,13 +496,13 @@ class __Q4NX_Converter(ABC):
                 c=self.col_block_size // Q8_group_size
 
             ).contiguous()
-            
-            m = rearrange(
-                m,
-                "(row_div_r r) (col_div_c c) -> row_div_r col_div_c (c r)",
-                r=self.row_block_size,
-                c=self.col_block_size // Q8_group_size                
-            ).contiguous()
+            if m is not None:
+                m = rearrange(
+                    m,
+                    "(row_div_r r) (col_div_c c) -> row_div_r col_div_c (c r)",
+                    r=self.row_block_size,
+                    c=self.col_block_size // Q8_group_size                
+                ).contiguous()
             
             assert self.row_block_size % self.parallel_size == 0
             # similar, for the data block
@@ -526,25 +528,30 @@ class __Q4NX_Converter(ABC):
             scales = scales.to(torch.bfloat16)
             
             # also convert m from float16 to bfloat16
-            assert(m.dtype == torch.float16)
-            m = m.to(torch.bfloat16)
-        
+            if m is not None:
+                assert(m.dtype == torch.float16)
+                m = m.to(torch.bfloat16)
+            
             
         else:
             raise ValueError("Only support keep_block_in_2D for now")
         
         scales = scales.view(torch.int8)
-        m = m.view(torch.int8)
         data = data.view(torch.int8)
-        
         scales_np = scales.numpy()
-        m_np = m.numpy()
         data_np = data.numpy()
-        # do  a copy of scales_np for now, for padding space
-        merged = np.concatenate([scales_np,  m_np, data_np], axis = -1).copy()
+        if m is not None:
+            m = m.view(torch.int8)
+            m_np = m.numpy()
+            # do  a copy of scales_np for now, for padding space
+            merged = np.concatenate([scales_np,  m_np, data_np], axis = -1).copy()
+            
+            return torch.from_numpy(merged)       
+        else:
+            # do  a copy of scales_np for now, for padding space
+            merged = np.concatenate([scales_np, data_np], axis = -1).copy()
+            return torch.from_numpy(merged)       
         
-        return torch.from_numpy(merged)       
-    
     def _pack_q4nx(self, d: torch.Tensor, m: torch.Tensor = None, qw: torch.Tensor = None) -> torch.Tensor:
         """
 
