@@ -6,6 +6,7 @@ from gguf import GGUFReader, dequantize, quantize, GGMLQuantizationType
 from safetensors.torch import save_file
 from einops import rearrange, repeat
 import torch
+import numpy as np
 
 class Qwen35(__Q4NX_Converter, model_arch=ModelArch.QWEN35_4B):
     def __init__(self, gguf_reader: GGUFReader):
@@ -26,7 +27,17 @@ class Qwen35(__Q4NX_Converter, model_arch=ModelArch.QWEN35_4B):
                 print("[INFO] Model does not have a lm_head, use embedding weights as lm_head")
                 unpacked = self.gguf_tensors["token_embd.weight"].unpack(self.default_tensor_type)
                 target_dtype = self.gguf_tensors["token_embd.weight"].get_used_quantization_type(self.default_tensor_type)
-                self.q4nx_tensors["lm_head.weight"] = self._pack(*unpacked, tensor_type=target_dtype)
+                assert target_dtype == GGMLQuantizationType.Q8_0
+                
+                
+                d, m, qw = unpacked
+                self.q4nx_tensors["lm_head.weight"] = self._pack_q8nx(data=qw, scales=d, m=None)
+                
+                # # for debug, save both the self.q4nx_tensors["lm_head.weight"] in raw binary file
+                # with open("lm_head_q8nx.bin", "wb") as f:
+                #     self.q4nx_tensors["lm_head.weight"].cpu().numpy().tofile(f)
+                
+                #self.q4nx_tensors["lm_head.weight"] = self._pack(*unpacked, tensor_type=target_dtype)
 
             for key, gguf_tensor in self.gguf_tensors.items():
                 target_dtype = gguf_tensor.get_used_quantization_type(self.default_tensor_type)
