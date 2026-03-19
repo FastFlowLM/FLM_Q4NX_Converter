@@ -33,11 +33,11 @@ class Qwen35(__Q4NX_Converter, model_arch=ModelArch.QWEN35_4B):
                 d, m, qw = unpacked
                 self.q4nx_tensors["lm_head.weight"] = self._pack_q8nx(data=qw, scales=d, m=None)
                 
-                # for debug, save both the self.q4nx_tensors["lm_head.weight"] in raw binary file
-                with open("lm_head_q8nx.bin", "wb") as f:
-                    self.q4nx_tensors["lm_head.weight"].cpu().numpy().tofile(f)
+                # # for debug, save both the self.q4nx_tensors["lm_head.weight"] in raw binary file
+                # with open("lm_head_q8nx.bin", "wb") as f:
+                #     self.q4nx_tensors["lm_head.weight"].cpu().numpy().tofile(f)
                 
-                #self.q4nx_tensors["lm_head.weight"] = self._pack(*unpacked, tensor_type=target_dtype)
+                # #self.q4nx_tensors["lm_head.weight"] = self._pack(*unpacked, tensor_type=target_dtype)
             else:
                 print("[INFO] Model has a lm_head, convert normally")
                 unpacked = self.gguf_tensors["output.weight"].unpack(self.default_tensor_type)
@@ -48,9 +48,9 @@ class Qwen35(__Q4NX_Converter, model_arch=ModelArch.QWEN35_4B):
                 d, m, qw = unpacked
                 self.q4nx_tensors["lm_head.weight"] = self._pack_q8nx(data=qw, scales=d, m=None)
                 
-                # for debug, save both the self.q4nx_tensors["lm_head.weight"] in raw binary file
-                with open("lm_head_q8nx.bin", "wb") as f:
-                    self.q4nx_tensors["lm_head.weight"].cpu().numpy().tofile(f)
+                # # for debug, save both the self.q4nx_tensors["lm_head.weight"] in raw binary file
+                # with open("lm_head_q8nx.bin", "wb") as f:
+                #     self.q4nx_tensors["lm_head.weight"].cpu().numpy().tofile(f)
 
             for key, gguf_tensor in self.gguf_tensors.items():
                 
