@@ -93,6 +93,7 @@ class __Q4NX_Converter(ABC):
 
     def _load_config(self, config_file_path: str = "configs"):
         config_path = os.path.join(config_file_path, ModelArchConfigs[self.model_arch])
+        print(f"[INFO] Loading Q4NX config from {config_path}")
         self.q4nx_config = json.load(open(config_path))
         self.row_block_size = self.q4nx_config["q4nx_config"]["row_block_size"]
         self.col_block_size = self.q4nx_config["q4nx_config"]["col_block_size"]

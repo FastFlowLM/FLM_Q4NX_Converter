@@ -22,6 +22,12 @@ class Qwen35(__Q4NX_Converter, model_arch=ModelArch.QWEN35_4B):
 
         self.q4nx_tensors = {}
         if weights_type == "language":
+            reorder_linear_required = True
+            if self.gguf_reader.fields["qwen35.feed_forward_length"].contents() <= 6144: # small model, no qk share on linear head
+                reorder_linear_required = False
+            if reorder_linear_required:
+                print("[INFO] Reorder linear required!")
+
             full_attntion_interval = self.gguf_reader.fields["qwen35.full_attention_interval"].contents()            
             if not self._has_lm_head():
                 print("[INFO] Model does not have a lm_head, use embedding weights as lm_head")
@@ -84,59 +90,62 @@ class Qwen35(__Q4NX_Converter, model_arch=ModelArch.QWEN35_4B):
 
                 else: # linear attention
                     if "self_attn.gate_proj" in self.forward_name_map[gguf_tensor.name]: # for llama q_proj, the order is special
-                        print("[INFO] Reorder Gate")
-                        DH = self.gguf_reader.fields["qwen35.ssm.state_size"].contents()
-                        d, m, qw = unpacked
-                        d = rearrange(d, '(q g p) c -> (g q p) c', p = DH, q = 2).contiguous()
-                        m = rearrange(m, '(q g p) c -> (g q p) c', p = DH, q = 2).contiguous()
-                        qw = rearrange(qw, '(q g p) c -> (g q p) c', p = DH, q = 2).contiguous()
-                        unpacked = (d, m, qw)
+                        if reorder_linear_required:
+                            print("[INFO] Reorder Gate")
+                            DH = self.gguf_reader.fields["qwen35.ssm.state_size"].contents()
+                            d, m, qw = unpacked
+                            d = rearrange(d, '(q g p) c -> (g q p) c', p = DH, q = 2).contiguous()
+                            m = rearrange(m, '(q g p) c -> (g q p) c', p = DH, q = 2).contiguous()
+                            qw = rearrange(qw, '(q g p) c -> (g q p) c', p = DH, q = 2).contiguous()
+                            unpacked = (d, m, qw)
 
                     if "qkv_proj" in self.forward_name_map[gguf_tensor.name]: # for llama q_proj, the order is special
-                        print("[INFO] Seperate q, gate for q_proj")
-                        DH = self.gguf_reader.fields["qwen35.ssm.state_size"].contents()
-                        d, m, qw = unpacked
-                        d0, d1 = d.chunk(2, dim = 0)
-                        m0, m1 = m.chunk(2, dim = 0)
-                        qw0, qw1 = qw.chunk(2, dim = 0)
-                        print(d0.shape, d1.shape, m0.shape, m1.shape, qw0.shape, qw1.shape)
-                        pp = DH
+                        if reorder_linear_required:
+                            print("[INFO] Seperate q, gate for q_proj")
+                            DH = self.gguf_reader.fields["qwen35.ssm.state_size"].contents()
+                            d, m, qw = unpacked
+                            d0, d1 = d.chunk(2, dim = 0)
+                            m0, m1 = m.chunk(2, dim = 0)
+                            qw0, qw1 = qw.chunk(2, dim = 0)
+                            print(d0.shape, d1.shape, m0.shape, m1.shape, qw0.shape, qw1.shape)
+                            pp = DH
 
-                        d1 = rearrange(d1, '(q g p) c -> (g q p) c', p = pp, q = 2).contiguous()
-                        m1 = rearrange(m1, '(q g p) c -> (g q p) c', p = pp, q = 2).contiguous()
-                        qw1 = rearrange(qw1, '(q g p) c -> (g q p) c', p = pp, q = 2).contiguous()
+                            d1 = rearrange(d1, '(q g p) c -> (g q p) c', p = pp, q = 2).contiguous()
+                            m1 = rearrange(m1, '(q g p) c -> (g q p) c', p = pp, q = 2).contiguous()
+                            qw1 = rearrange(qw1, '(q g p) c -> (g q p) c', p = pp, q = 2).contiguous()
 
-                        d = torch.cat([d0, d1], dim = 0).contiguous()
-                        m = torch.cat([m0, m1], dim = 0).contiguous()
-                        qw = torch.cat([qw0, qw1], dim = 0).contiguous()
-                        unpacked = (d, m, qw)
+                            d = torch.cat([d0, d1], dim = 0).contiguous()
+                            m = torch.cat([m0, m1], dim = 0).contiguous()
+                            qw = torch.cat([qw0, qw1], dim = 0).contiguous()
+                            unpacked = (d, m, qw)
 
                     if "ssm_out_proj" in self.forward_name_map[gguf_tensor.name]: # for ssm_alpha_proj, the order is special
-                        print(f"[INFO] Reorder for {self.forward_name_map[gguf_tensor.name]}")
-                        d, m, qw = unpacked
-                        DH = self.gguf_reader.fields["qwen35.ssm.state_size"].contents()
-                        DH = DH // 32 # reorder in group size
-                        d = rearrange(d, 'r (q g p) c -> r (g q p) c', p = DH, q = 2).contiguous()
-                        m = rearrange(m, 'r (q g p) c -> r (g q p) c', p = DH, q = 2).contiguous()
-                        qw = rearrange(qw, 'r (q g p) c -> r (g q p) c', p = DH, q = 2).contiguous()
+                        if reorder_linear_required:
+                            print(f"[INFO] Reorder for {self.forward_name_map[gguf_tensor.name]}")
+                            d, m, qw = unpacked
+                            DH = self.gguf_reader.fields["qwen35.ssm.state_size"].contents()
+                            DH = DH // 32 # reorder in group size
+                            d = rearrange(d, 'r (q g p) c -> r (g q p) c', p = DH, q = 2).contiguous()
+                            m = rearrange(m, 'r (q g p) c -> r (g q p) c', p = DH, q = 2).contiguous()
+                            qw = rearrange(qw, 'r (q g p) c -> r (g q p) c', p = DH, q = 2).contiguous()
 
-                        unpacked = (d, m, qw)
+                            unpacked = (d, m, qw)
 
                     if "ssm_alpha_proj" in self.forward_name_map[gguf_tensor.name] or "ssm_beta_proj" in self.forward_name_map[gguf_tensor.name]: # for ssm_alpha_proj, the order is special
                         d, m, qw = unpacked
                         # save bf16 copy
                         w = gguf_tensor.dequantize()
-                        w = rearrange(w, '(q g) c -> (g q) c', q = 2).contiguous()
+                        if reorder_linear_required:
+                            w = rearrange(w, '(q g) c -> (g q) c', q = 2).contiguous()
 
                         new_name = self.forward_name_map[gguf_tensor.name]
                         new_name = new_name.replace("alpha_proj", "alpha_proj.bf16").replace("beta_proj", "beta_proj.bf16")
                         self.q4nx_tensors[new_name] = w
-
-                        print(f"[INFO] Reorder for {self.forward_name_map[gguf_tensor.name]}")
-
-                        d = rearrange(d, '(q g) c l -> (g q) c l', q = 2).contiguous()
-                        m = rearrange(m, '(q g) c l -> (g q) c l', q = 2).contiguous()
-                        qw = rearrange(qw, '(q g) c l -> (g q) c l', q = 2).contiguous()
+                        if reorder_linear_required:
+                            print(f"[INFO] Reorder for {self.forward_name_map[gguf_tensor.name]}")
+                            d = rearrange(d, '(q g) c l -> (g q) c l', q = 2).contiguous()
+                            m = rearrange(m, '(q g) c l -> (g q) c l', q = 2).contiguous()
+                            qw = rearrange(qw, '(q g) c l -> (g q) c l', q = 2).contiguous()
 
                         if (d.shape[0] < 32): # duplicate on the first dimension (d c l -> (2 d) c l) for better performance when the state size is small
                             d = repeat(d, 'd c l -> (r d) c l', r = 2).contiguous()
@@ -152,22 +161,26 @@ class Qwen35(__Q4NX_Converter, model_arch=ModelArch.QWEN35_4B):
                         DH = self.gguf_reader.fields["qwen35.ssm.state_size"].contents()
                         d = unpacked[0]
                         
-                        d0, d1 = d.chunk(2, dim = 0)
-                        d1 = rearrange(d1, '(q g p) c -> (g q p) c', p = DH, q = 2).contiguous()
+                        if reorder_linear_required:
+                            d0, d1 = d.chunk(2, dim = 0)
+
+                            d1 = rearrange(d1, '(q g p) c -> (g q p) c', p = DH, q = 2).contiguous()
                         
-                        d = torch.cat([d0, d1], dim = 0).contiguous()
+                            d = torch.cat([d0, d1], dim = 0).contiguous()
                         d = d.T.contiguous()
                         unpacked = [d]
                 
                     if "ssm_a" in gguf_tensor.name[-5:]: # [-5:] to avoid confusing with "ssm_alpha_proj" or "ssm_dt_proj"
                         val = unpacked[0].to(torch.float32).contiguous()
-                        val = rearrange(val, '(q g) -> (g q)', q = 2).contiguous() # for ssm_a, we also need to reorder the g and p dim
+                        if reorder_linear_required:
+                            val = rearrange(val, '(q g) -> (g q)', q = 2).contiguous() # for ssm_a, we also need to reorder the g and p dim
                         self.q4nx_tensors[self.forward_name_map[gguf_tensor.name]] = val
                         continue
 
                     if "ssm_dt" in gguf_tensor.name: # [-5:] to avoid confusing with "ssm_alpha_proj" or "ssm_dt_proj"
                         val = unpacked[0].to(torch.float32).contiguous()
-                        val = rearrange(val, '(q g) -> (g q)', q = 2).contiguous() # for ssm_dt, we also need to reorder the g and p dim
+                        if reorder_linear_required:
+                            val = rearrange(val, '(q g) -> (g q)', q = 2).contiguous() # for ssm_dt, we also need to reorder the g and p dim
                         self.q4nx_tensors[self.forward_name_map[gguf_tensor.name]] = val
                         continue
 
@@ -208,6 +221,11 @@ class Qwen35(__Q4NX_Converter, model_arch=ModelArch.QWEN35_4B):
             raise ValueError(f"Unsupported weights_type: {weights_type} for Qwen35 model")
 
         self._export_q4nx_tensors(q4nx_path)
+
+
+class Qwen35_2B(Qwen35, model_arch=ModelArch.QWEN35_2B):
+    print("[INFO] Using Qwen35_2B converter")
+    pass
 
 class Qwen35_9B(Qwen35, model_arch=ModelArch.QWEN35_9B):
     print("[INFO] Using Qwen35_9B converter")
