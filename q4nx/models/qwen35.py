@@ -199,6 +199,11 @@ class Qwen35_2B(Qwen35, model_arch=ModelArch.QWEN35_2B):
     print("[INFO] Using Qwen35_2B converter")
     pass
 
+
+class Qwen35_08B(Qwen35, model_arch=ModelArch.QWEN35_08B):
+    print("[INFO] Using Qwen35_08B converter")
+    pass
+
 class Qwen35_9B(Qwen35, model_arch=ModelArch.QWEN35_9B):
     print("[INFO] Using Qwen35_9B converter")
     pass

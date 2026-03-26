@@ -13,6 +13,7 @@ hf_cache/
 
 # C extensions
 *.so
+*.safetensors
 
 # Distribution / packaging
 .Python
