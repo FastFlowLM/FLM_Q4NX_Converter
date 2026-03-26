@@ -16,6 +16,7 @@ class Nanbeige(__Q4NX_Converter, model_arch=ModelArch.NANBEIGE):
         super().initialize()
 
     def convert(self, q4nx_path: str, weights_type: str = 'language'):
+        print("[INFO] Converting nanbeige model to Q4NX format...")
         self.q4nx_tensors = {}
 
         if not self._has_lm_head():
