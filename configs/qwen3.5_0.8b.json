@@ -6,7 +6,7 @@
         "keep_block_in_2D": true
     },
     "vision_config":{
-        "vision_MM_K": 512,
+        "vision_MM_K": 256,
         "vision_MM_N": 64
     },        
     "default_tensor_type": "Q8_0",
