@@ -34,9 +34,8 @@ class __Q4NX_Converter(ABC):
     col_block_size: int
     parallel_size: int   # vector len size for efficient parallel vector operation
     keep_block_in_2D: bool
-    default_q4nx_tensor_type: GGMLQuantizationType 
 
-    
+    default_tensor_type: GGMLQuantizationType
     
     # specific for vision models
     vision_MM_K:int|None
@@ -44,6 +43,7 @@ class __Q4NX_Converter(ABC):
     
     forward_name_map: Dict[str, str]
     backward_name_map: Dict[str, str]
+    tensor_q4nx_type_map: Dict[str, GGMLQuantizationType]
 
     def __init__(self):
         raise TypeError("This class is virtual, do not instantiate it directly")
@@ -116,25 +116,46 @@ class __Q4NX_Converter(ABC):
             self.vision_MM_N = None
         self._create_name_maps()
 
+    def get_ggml_type(self, q4nx_name: str) -> GGMLQuantizationType:
+        if q4nx_name == "Q4_0":
+            return GGMLQuantizationType.Q4_0
+        elif q4nx_name == "Q4_1":
+            return GGMLQuantizationType.Q4_1
+        elif q4nx_name == "Q8_0":
+            return GGMLQuantizationType.Q8_0
+        else:
+            raise ValueError(f"Unsupported q4nx_name: {q4nx_name}")
+
     def _create_name_maps(self):
         print("[INFO] Creating name maps...")
         self.forward_name_map = {}
         self.backward_name_map = {}
+        self.tensor_q4nx_type_map = {}
         for param_name, param_info in self.q4nx_config["name_map"].items():
             if ("{bid}" in param_info["gguf_name"]):
                 for bid in range(self.num_layers):
                     self.forward_name_map[param_info["gguf_name"].format(bid=bid)] = param_info["q4nx_name"].format(bid=bid)
                     self.backward_name_map[param_info["q4nx_name"].format(bid=bid)] = param_info["gguf_name"].format(bid=bid)
+                    if "default_tensor_type" in param_info:
+                        self.tensor_q4nx_type_map[param_info["gguf_name"].format(bid=bid)] = self.get_ggml_type(param_info["default_tensor_type"])
+                    else:
+                        self.tensor_q4nx_type_map[param_info["gguf_name"].format(bid=bid)] = self.default_tensor_type
                     if bid == 0:
                         print(f"\tConverted {param_info['gguf_name'].format(bid=bid)} to {param_info['q4nx_name'].format(bid=bid)}")
             else:
                 self.forward_name_map[param_info["gguf_name"]] = param_info["q4nx_name"]
                 self.backward_name_map[param_info["q4nx_name"]] = param_info["gguf_name"]
+                if "default_tensor_type" in param_info:
+                    self.tensor_q4nx_type_map[param_info["gguf_name"]] = self.get_ggml_type(param_info["default_tensor_type"])
+                else:
+                    self.tensor_q4nx_type_map[param_info["gguf_name"]] = self.default_tensor_type
+
                 print(f"\tConverted {param_info['gguf_name']} to {param_info['q4nx_name']}")
 
         # sort the name map by the name alphabetically
         self.forward_name_map = dict(sorted(self.forward_name_map.items(), key=lambda item: item[0]))
         self.backward_name_map = dict(sorted(self.backward_name_map.items(), key=lambda item: item[0]))
+        self.tensor_q4nx_type_map = dict(sorted(self.tensor_q4nx_type_map.items(), key=lambda item: item[0]))
 
 
     def _has_lm_head(self) -> bool:

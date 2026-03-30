@@ -9,7 +9,7 @@
         "vision_MM_K": 256,
         "vision_MM_N": 64
     },        
-    "default_tensor_type": "Q8_0",
+    "default_tensor_type": "Q4_1",
     "name_map": {
         "embedding": {
             "gguf_name": "token_embd.weight",
@@ -73,11 +73,13 @@
         },
         "linear_alpha_proj": {
             "gguf_name": "blk.{bid}.ssm_alpha.weight",
-            "q4nx_name": "model.layers.{bid}.linear_attn.ssm_alpha_proj.weight"
+            "q4nx_name": "model.layers.{bid}.linear_attn.ssm_alpha_proj.weight",
+            "default_tensor_type": "Q8_0"
         },
         "linear_beta_proj": {
             "gguf_name": "blk.{bid}.ssm_beta.weight",
-            "q4nx_name": "model.layers.{bid}.linear_attn.ssm_beta_proj.weight"
+            "q4nx_name": "model.layers.{bid}.linear_attn.ssm_beta_proj.weight",
+            "default_tensor_type": "Q8_0"
         },
         "linear_conv": {
             "gguf_name": "blk.{bid}.ssm_conv1d.weight",
@@ -89,7 +91,8 @@
         },
         "linear_out_proj": {
             "gguf_name": "blk.{bid}.ssm_out.weight",
-            "q4nx_name": "model.layers.{bid}.linear_attn.ssm_out_proj.weight"
+            "q4nx_name": "model.layers.{bid}.linear_attn.ssm_out_proj.weight",
+            "default_tensor_type": "Q8_0"
         },
         "linear_dt": {
             "gguf_name": "blk.{bid}.ssm_dt.bias",
@@ -101,7 +104,8 @@
         },
         "lm_head": {
             "gguf_name": "output.weight",
-            "q4nx_name": "lm_head.weight"
+            "q4nx_name": "lm_head.weight",
+            "default_tensor_type": "Q8_0"
         },
 
 

@@ -30,12 +30,12 @@ class Qwen35(__Q4NX_Converter, model_arch=ModelArch.QWEN35_4B):
             full_attntion_interval = self.gguf_reader.fields["qwen35.full_attention_interval"].contents()            
             if not self._has_lm_head():
                 print("[INFO] Model does not have a lm_head, use embedding weights as lm_head")
-                unpacked = self.gguf_tensors["token_embd.weight"].unpack(self.default_tensor_type)
-                target_dtype = self.gguf_tensors["token_embd.weight"].get_used_quantization_type(self.default_tensor_type)
+                unpacked = self.gguf_tensors["token_embd.weight"].unpack(GGMLQuantizationType.Q8_0)
+                target_dtype = self.gguf_tensors["token_embd.weight"].get_used_quantization_type(GGMLQuantizationType.Q8_0)
                 self.q4nx_tensors["lm_head.weight"] = self._pack(*unpacked, tensor_type=target_dtype)
 
             for key, gguf_tensor in self.gguf_tensors.items():
-                target_dtype = gguf_tensor.get_used_quantization_type(self.default_tensor_type)
+                target_dtype = gguf_tensor.get_used_quantization_type(self.tensor_q4nx_type_map[gguf_tensor.name])
                 print(f"Processing tensor: {gguf_tensor.name} with type {gguf_tensor.tensor_type.name} -> {self.forward_name_map[gguf_tensor.name]} with dtype {target_dtype.name}")
                 if "token_embd.weight" in gguf_tensor.name: # this should be bf16
                     w = dequantize(gguf_tensor.data, gguf_tensor.tensor_type)
@@ -48,7 +48,7 @@ class Qwen35(__Q4NX_Converter, model_arch=ModelArch.QWEN35_4B):
                 if "layers." in new_name:
                     layer_id = int(new_name.split("layers.")[1].split(".")[0])
 
-                unpacked = gguf_tensor.unpack(self.default_tensor_type)
+                unpacked = gguf_tensor.unpack(self.tensor_q4nx_type_map[gguf_tensor.name])
 
                 if layer_id % full_attntion_interval == (full_attntion_interval - 1):    
                     if "q_proj" in self.forward_name_map[gguf_tensor.name]: # for llama q_proj, the order is special
