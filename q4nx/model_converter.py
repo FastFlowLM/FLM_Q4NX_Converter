@@ -479,14 +479,20 @@ class __Q4NX_Converter(ABC):
         
         
         Q8_group_size =  32
-        assert len(scales.shape) == 3
-        assert len(data.shape) ==3
+        # assert len(scales.shape) == 3
+        # assert len(data.shape) ==3
         # data are shape of [row, col//Q8_group_size, Q8_group_size]
         # merge last two dim of scales and data
-        scales = scales.reshape(*scales.shape[:-2], -1).contiguous()
-        data = data.reshape(*data.shape[:-2], -1).contiguous()
-        m = m.reshape(*m.shape[:-2], -1).contiguous()
         
+        if scales.shape[-1] == 1:
+            scales = scales.reshape(*scales.shape[:-2], -1).contiguous()
+            data = data.reshape(*data.shape[:-2], -1).contiguous()
+            m = m.reshape(*m.shape[:-2], -1).contiguous()
+        else:
+            scales = scales.contiguous()
+            data = data.contiguous()
+            m = m.contiguous() 
+            
         rows, cols = data.shape[0], data.shape[1]
         
         

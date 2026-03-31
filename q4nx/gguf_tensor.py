@@ -110,8 +110,12 @@ class GGUFTensor:
         # Use view() to reinterpret bytes as signed int8
         data = blocks[..., 2:].view(np.int8)
         
+        Q8_block_size = 32
+        # Reshape to (rows, cols_per_type) using columns, matching unpack_q4_1 output shape
+        scales = np.ascontiguousarray(scales).reshape(-1, columns // Q8_block_size)
+        data = np.ascontiguousarray(data).reshape(-1, columns)
         
-        return torch.from_numpy(scales),torch.from_numpy(scales),  torch.from_numpy(data)
+        return torch.from_numpy(scales.copy()), torch.from_numpy(scales.copy()), torch.from_numpy(data.copy())
         
         
     
