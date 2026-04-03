@@ -14,6 +14,7 @@ class ModelArch(IntEnum):
     QWEN2   = auto()
     QWEN2VL = auto()
     GEMMA3  = auto()
+    GEMMA4  = auto()
     LLAMA   = auto()
     LFM2    = auto()
     PHI4    = auto()
@@ -31,6 +32,7 @@ ModelArchNames: dict[ModelArch, list[str]] = {
     ModelArch.QWEN2:   ["qwen2"],
     ModelArch.QWEN3:   ["qwen3"],
     ModelArch.GEMMA3:  ["gemma3", "Medgemma", "Gemma-3"],
+    ModelArch.GEMMA4:  ["gemma4"],
     ModelArch.LLAMA:   ["llama"],
     ModelArch.LFM2:    ["lfm2"],
     ModelArch.PHI4:    ["phi3"],
@@ -48,6 +50,7 @@ ModelArchConfigs: dict[ModelArch, str] = {
     ModelArch.QWEN35_2B: "qwen3.5_2b.json",
     ModelArch.QWEN35_08B: "qwen3.5_0.8b.json",
     ModelArch.GEMMA3:  "gemma3.json",
+    ModelArch.GEMMA4:  "gemma4.json",
     ModelArch.LLAMA:   "llama.json",
     ModelArch.LFM2:    "lfm2.json",
     ModelArch.PHI4:    "phi4.json",
