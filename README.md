@@ -89,6 +89,40 @@ python convert.py -i model.gguf -o output_folder -f qwen2
 ```
 This is useful when the GGUF file metadata doesn't correctly identify the architecture or when you want to override the automatic detection.
 
+**5. Convert from a different quantization format (e.g. Q4_K_M):**
+```bash
+python convert.py -i model.gguf -o output_folder
+```
+The converter automatically dequantizes non-Q4_0/Q4_1 weights and re-quantizes them into Q4NX. See the [Converting from Other Quantization Formats](#converting-from-other-quantization-formats) section for details.
+
+## Converting from Other Quantization Formats
+
+The converter supports GGUF models that use quantization formats other than Q4_0 or Q4_1, such as **Q4_K_M**, **Q8_0**, **Q5_K_M**, and others. When the converter encounters weights in a non-native format, it automatically dequantizes them back to floating point and then re-quantizes them into the Q4NX target format.
+
+This means you are not limited to sourcing GGUF files that are already in Q4_0 or Q4_1 — you can use a wider variety of community-quantized models as input.
+
+The conversion process works as follows:
+
+1. The converter reads the quantization type of each tensor from the GGUF file.
+2. If the tensor is not already in the expected format (Q4_0 or Q4_1, depending on the model config), it is dequantized to FP32.
+3. The dequantized weights are then re-quantized into the target format required by FLM.
+
+This process is fully automatic and requires no additional flags beyond **`-f`** if the architecture cannot be auto-detected.
+
+> **Note:** Dequantizing from a lossy format and re-quantizing introduces additional quantization error compared to converting directly from full-precision weights. For best quality, prefer starting from BF16, FP16, or Q8_0 sources when available.
+
+When converting community-quantized models, the GGUF metadata may not always match the architecture names expected by the converter. Use the **`-f`** flag to explicitly specify the model architecture in those cases.
+
+### Example
+
+Convert a [Q4_K_M quantized model](https://huggingface.co/HauhauCS/Qwen3.5-9B-Uncensored-HauhauCS-Aggressive) from the community:
+
+```bash
+python convert.py -i Qwen3.5-9B-Uncensored-HauhauCS-Aggressive-Q4_K_M.gguf -o unsloth-qwen3_59b_uncensored -f qwen3.5-9B
+```
+
+Here, **`-f qwen3.5-9B`** tells the converter to use the Qwen 3.5 9B architecture, since the GGUF metadata from the community model may not be detected correctly.
+
 
 ## Step-by-Step Converting and Registering Custom FLM Models
 
@@ -112,14 +146,14 @@ Make sure you have:
 
 #### Important compatibility note
 
-Different model families expect different quantization formats. Your source GGUF file must match the configuration used by the model family under `configs/`.
+Different model families expect different quantization formats. The expected format for each model family is defined in the configuration files under `configs/`.
 
 For example:
 
 - **`lfm2`** uses **`q4_0`**
 - **`qwen3vl`** uses **`q4_1`**
 
-If the quantization does not match the expected configuration, the converted model may not work correctly.
+If the source GGUF file uses a different quantization format (such as Q4_K_M or Q8_0), the converter will automatically dequantize and re-quantize the weights into the expected format. See [Converting from Other Quantization Formats](#converting-from-other-quantization-formats) for details.
 
 ---
 
@@ -475,6 +509,6 @@ flm serve qwen3vl-it:4b-custom
 
 
 ## Known Issues
-- The converter currently only supports either Q4_0 or Q4_1 quantization format based on the setting in config files for each model.
+- The converter outputs either Q4_0 or Q4_1 quantization format based on the setting in config files for each model. Input GGUF files can use other quantization formats — the converter will dequantize and re-quantize automatically, though this may introduce additional quantization error.
 - For GPT-OSS:20B models, the converter currently uses the original `model.embed_tokens.weight` from the safetensors from OpenAI due to issues with Q4_1 quantization (from our experience, Q4_1 quantization messes up the quantization of the embedding layer for this model). 
   - **Workaround:** Place the [`model-00001-of-00001.safetensors`](https://huggingface.co/openai/gpt-oss-20b/tree/main) file in the root directory of this project before running the conversion for GPT-OSS. If the file is not found, the converter will print a warning and skip replacing the embedding weights. 

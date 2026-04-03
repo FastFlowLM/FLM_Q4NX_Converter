@@ -97,9 +97,11 @@ class Qwen35(__Q4NX_Converter, model_arch=ModelArch.QWEN35_4B):
                             d, m, qw = unpacked
                             DH = self.gguf_reader.fields["qwen35.ssm.state_size"].contents()
                             DH = DH // 32 # reorder in group size
-                            d = rearrange(d, 'r (q g p) c -> r (g q p) c', p = DH, q = 2).contiguous()
-                            m = rearrange(m, 'r (q g p) c -> r (g q p) c', p = DH, q = 2).contiguous()
-                            qw = rearrange(qw, 'r (q g p) c -> r (g q p) c', p = DH, q = 2).contiguous()
+                            BLOCK_SIZE = 32
+                            d = rearrange(d, 'r (q g p) -> r (g q p)', p = DH, q = 2).contiguous()
+                            m = rearrange(m, 'r (q g p) -> r (g q p)', p = DH, q = 2).contiguous()
+                            # qw has 32 elements per block vs 1 for d/m, so use DH * BLOCK_SIZE to keep block alignment
+                            qw = rearrange(qw, 'r (q g p) -> r (g q p)', p = DH * BLOCK_SIZE, q = 2).contiguous()
 
                             unpacked = (d, m, qw)
 
@@ -115,14 +117,14 @@ class Qwen35(__Q4NX_Converter, model_arch=ModelArch.QWEN35_4B):
                         self.q4nx_tensors[new_name] = w
                         if reorder_linear_required:
                             print(f"[INFO] Reorder for {self.forward_name_map[gguf_tensor.name]}")
-                            d = rearrange(d, '(q g) c l -> (g q) c l', q = 2).contiguous()
-                            m = rearrange(m, '(q g) c l -> (g q) c l', q = 2).contiguous()
-                            qw = rearrange(qw, '(q g) c l -> (g q) c l', q = 2).contiguous()
+                            d = rearrange(d, '(q g) c -> (g q) c', q = 2).contiguous()
+                            m = rearrange(m, '(q g) c -> (g q) c', q = 2).contiguous()
+                            qw = rearrange(qw, '(q g) c -> (g q) c', q = 2).contiguous()
 
-                        if (d.shape[0] < 32): # duplicate on the first dimension (d c l -> (2 d) c l) for better performance when the state size is small
-                            d = repeat(d, 'd c l -> (r d) c l', r = 2).contiguous()
-                            m = repeat(m, 'd c l -> (r d) c l', r = 2).contiguous()
-                            qw = repeat(qw, 'd c l -> (r d) c l', r = 2).contiguous()
+                        if (d.shape[0] < 32): # duplicate on the first dimension for better performance when the state size is small
+                            d = repeat(d, 'd c -> (r d) c', r = 2).contiguous()
+                            m = repeat(m, 'd c -> (r d) c', r = 2).contiguous()
+                            qw = repeat(qw, 'd c -> (r d) c', r = 2).contiguous()
 
                         unpacked = (d, m, qw)
 
