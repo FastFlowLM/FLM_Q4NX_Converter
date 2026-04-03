@@ -123,6 +123,8 @@ class __Q4NX_Converter(ABC):
             return GGMLQuantizationType.Q4_1
         elif q4nx_name == "Q8_0":
             return GGMLQuantizationType.Q8_0
+        elif q4nx_name == "BF16":
+            return GGMLQuantizationType.BF16
         else:
             raise ValueError(f"Unsupported q4nx_name: {q4nx_name}")
 

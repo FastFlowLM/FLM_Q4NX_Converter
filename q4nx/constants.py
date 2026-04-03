@@ -32,7 +32,7 @@ ModelArchNames: dict[ModelArch, list[str]] = {
     ModelArch.QWEN2:   ["qwen2"],
     ModelArch.QWEN3:   ["qwen3"],
     ModelArch.GEMMA3:  ["gemma3", "Medgemma", "Gemma-3"],
-    ModelArch.GEMMA4:  ["gemma4"],
+    ModelArch.GEMMA4:  ["gemma4", "Gemma-4"],
     ModelArch.LLAMA:   ["llama"],
     ModelArch.LFM2:    ["lfm2"],
     ModelArch.PHI4:    ["phi3"],
