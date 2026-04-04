@@ -5,6 +5,10 @@
         "parallel_size": 16,
         "keep_block_in_2D": false
     },
+    "vision_config":{
+        "vision_MM_K": 256,
+        "vision_MM_N": 64
+    },    
     "default_tensor_type": "Q4_1",
     "name_map": {
         "embedding": {
@@ -115,6 +119,221 @@
         "lm_head": {
             "gguf_name": "output.weight",
             "q4nx_name": "lm_head.weight"
+        },
+
+
+        "vision_input_proj_weight" :{
+            "gguf_name": "mm.input_projection.weight",
+            "q4nx_name": "model.vision.embedding_projection.weight",
+            "default_tensor_type": "BF16"
+        },
+        "vision_position_embd_weight": {
+            "gguf_name": "v.position_embd.weight",
+            "q4nx_name": "model.vision.patch_embedder.position_embedding_table",
+            "default_tensor_type": "BF16"
+        },
+        "vision_patch_embd_weight": {
+            "gguf_name": "v.patch_embd.weight",
+            "q4nx_name": "model.vision.patch_embd.weight",
+            "default_tensor_type": "BF16"
+        },
+        "vision_attn_k_proj_weight": {
+            "gguf_name": "v.blk.{bid}.attn_k.weight",
+            "q4nx_name": "model.vision.{bid}.vision_attn.k_proj.weight"
+        },
+        "vision_attn_k_proj_norm_weight":{
+            "gguf_name": "v.blk.{bid}.attn_k_norm.weight",
+            "q4nx_name": "model.vision.{bid}.vision_attn.k_norm.weight",
+            "default_tensor_type": "BF16"            
+        },
+        "vision_attn_k_input_min":{
+            "gguf_name": "v.blk.{bid}.attn_k.input_min",
+            "q4nx_name": "model.vision.{bid}.vision_attn.k_input_min",
+            "default_tensor_type": "BF16"            
+        },
+        "vision_attn_k_input_max":{
+            "gguf_name": "v.blk.{bid}.attn_k.input_max",
+            "q4nx_name": "model.vision.{bid}.vision_attn.k_input_max",
+            "default_tensor_type": "BF16"            
+        },
+        "vision_attn_k_output_max":{
+            "gguf_name": "v.blk.{bid}.attn_k.output_max",
+            "q4nx_name": "model.vision.{bid}.vision_attn.k_output_max",
+            "default_tensor_type": "BF16"            
+        },
+        "vision_attn_k_output_min":{
+            "gguf_name": "v.blk.{bid}.attn_k.output_min",
+            "q4nx_name": "model.vision.{bid}.vision_attn.k_output_min",
+            "default_tensor_type": "BF16"
+        },
+        "vision_attn_out_weight":{
+            "gguf_name": "v.blk.{bid}.attn_out.weight",
+            "q4nx_name": "model.vision.{bid}.vision_attn.out_proj.weight"
+        },
+        "vision_attn_post_norm_weight":{
+            "gguf_name": "v.blk.{bid}.attn_post_norm.weight",
+            "q4nx_name": "model.vision.{bid}.post_attn_norm.weight",
+            "default_tensor_type": "BF16"            
+        },
+        "vision_attn_out_input_max":{
+            "gguf_name": "v.blk.{bid}.attn_out.input_max",
+            "q4nx_name": "model.vision.{bid}.attn_out_input_max",
+            "default_tensor_type": "BF16"            
+        },
+        "vision_attn_out_input_min":{
+            "gguf_name": "v.blk.{bid}.attn_out.input_min",
+            "q4nx_name": "model.vision.{bid}.attn_out_input_min",
+            "default_tensor_type": "BF16"            
+        },
+        "vision_attn_out_output_max":{
+            "gguf_name": "v.blk.{bid}.attn_out.output_max",
+            "q4nx_name": "model.vision.{bid}.attn_out_output_max",
+            "default_tensor_type": "BF16"            
+        },
+        "vision_attn_out_output_min":{
+            "gguf_name": "v.blk.{bid}.attn_out.output_min",
+            "q4nx_name": "model.vision.{bid}.attn_out_output_min",
+            "default_tensor_type": "BF16"            
+        },
+        "vision_attn_q_proj_weight": {
+            "gguf_name": "v.blk.{bid}.attn_q.weight",
+            "q4nx_name": "model.vision.{bid}.vision_attn.q_proj.weight"
+        },
+        "vision_attn_q_proj_norm_weight":{
+            "gguf_name": "v.blk.{bid}.attn_q_norm.weight",
+            "q4nx_name": "model.vision.{bid}.vision_attn.q_norm.weight",
+            "default_tensor_type": "BF16"            
+        },
+        "vision_attn_q_input_min":{
+            "gguf_name": "v.blk.{bid}.attn_q.input_min",
+            "q4nx_name": "model.vision.{bid}.vision_attn.q_input_min",
+            "default_tensor_type": "BF16"            
+        },
+        "vision_attn_q_output_min":{
+            "gguf_name": "v.blk.{bid}.attn_q.output_min",
+            "q4nx_name": "model.vision.{bid}.vision_attn.q_output_min",
+            "default_tensor_type": "BF16"            
+        },
+        "vision_attn_q_input_max":{
+            "gguf_name": "v.blk.{bid}.attn_q.input_max",
+            "q4nx_name": "model.vision.{bid}.vision_attn.q_input_max",
+            "default_tensor_type": "BF16"            
+        },
+        "vision_attn_q_output_max":{
+            "gguf_name": "v.blk.{bid}.attn_q.output_max",
+            "q4nx_name": "model.vision.{bid}.vision_attn.q_output_max",
+            "default_tensor_type": "BF16"   
+        },
+        "vision_attn_v_proj_weight": {
+            "gguf_name": "v.blk.{bid}.attn_v.weight",
+            "q4nx_name": "model.vision.{bid}.vision_attn.v_proj.weight"
+        },
+        "vision_attn_v_input_min":{
+            "gguf_name": "v.blk.{bid}.attn_v.input_min",
+            "q4nx_name": "model.vision.{bid}.vision_attn.v_input_min",
+            "default_tensor_type": "BF16"            
+        },
+        "vision_attn_v_output_min":{
+            "gguf_name": "v.blk.{bid}.attn_v.output_min",
+            "q4nx_name": "model.vision.{bid}.vision_attn.v_output_min",
+            "default_tensor_type": "BF16"            
+        },
+        "vision_attn_v_input_max":{
+            "gguf_name": "v.blk.{bid}.attn_v.input_max",
+            "q4nx_name": "model.vision.{bid}.vision_attn.v_input_max",
+            "default_tensor_type": "BF16"            
+        },
+        "vision_attn_v_output_max":{
+            "gguf_name": "v.blk.{bid}.attn_v.output_max",
+            "q4nx_name": "model.vision.{bid}.vision_attn.v_output_max",
+            "default_tensor_type": "BF16"
+        },
+        "vision_ffn_down_proj_weight": {
+            "gguf_name": "v.blk.{bid}.ffn_down.weight",
+            "q4nx_name": "model.vision.{bid}.ffn.down_proj.weight"
+        },
+        "vision_ffn_down_input_min":{
+            "gguf_name": "v.blk.{bid}.ffn_down.input_min",
+            "q4nx_name": "model.vision.{bid}.ffn.down_input_min",
+            "default_tensor_type": "BF16"            
+        },
+        "vision_ffn_down_output_min":{
+            "gguf_name": "v.blk.{bid}.ffn_down.output_min",
+            "q4nx_name": "model.vision.{bid}.ffn.down_output_min",
+            "default_tensor_type": "BF16"            
+        },
+        "vision_ffn_down_input_max":{
+            "gguf_name": "v.blk.{bid}.ffn_down.input_max",
+            "q4nx_name": "model.vision.{bid}.ffn.down_input_max ",
+            "default_tensor_type": "BF16"            
+        },
+        "vision_ffn_down_output_max":{
+            "gguf_name": "v.blk.{bid}.ffn_down.output_max",
+            "q4nx_name": "model.vision.{bid}.ffn.down_output_max",
+            "default_tensor_type": "BF16"
+        },
+        "vision_ffn_gate_proj_weight": {
+            "gguf_name": "v.blk.{bid}.ffn_gate.weight",
+            "q4nx_name": "model.vision.{bid}.ffn.gate_proj.weight"
+        },
+        "vision_ffn_gate_input_min":{
+            "gguf_name": "v.blk.{bid}.ffn_gate.input_min",
+            "q4nx_name": "model.vision.{bid}.ffn.gate_input_min",
+            "default_tensor_type": "BF16"            
+        },
+        "vision_ffn_gate_output_min":{
+            "gguf_name": "v.blk.{bid}.ffn_gate.output_min",
+            "q4nx_name": "model.vision.{bid}.ffn.gate_output_min",
+            "default_tensor_type": "BF16"            
+        },
+        "vision_ffn_gate_input_max":{
+            "gguf_name": "v.blk.{bid}.ffn_gate.input_max",
+            "q4nx_name": "model.vision.{bid}.ffn.gate_input_max",
+            "default_tensor_type": "BF16"            
+        },
+        "vision_ffn_gate_output_max":{
+            "gguf_name": "v.blk.{bid}.ffn_gate.output_max",
+            "q4nx_name": "model.vision.{bid}.ffn.gate_output_max",
+            "default_tensor_type": "BF16"
+        },
+        "vision_ffn_post_norm_weight":{
+            "gguf_name": "v.blk.{bid}.ffn_post_norm.weight",
+            "q4nx_name": "model.vision.{bid}.ffn_post_norm.weight",
+            "default_tensor_type": "BF16"            
+        },
+        "vision_ffn_up_proj_weight": {
+            "gguf_name": "v.blk.{bid}.ffn_up.weight",
+            "q4nx_name": "model.vision.{bid}.ffn.up_proj.weight"
+        },
+        "vision_ffn_up_input_min":{
+            "gguf_name": "v.blk.{bid}.ffn_up.input_min",
+            "q4nx_name": "model.vision.{bid}.ffn.up_input_min",
+            "default_tensor_type": "BF16"            
+        },
+        "vision_ffn_up_output_min":{
+            "gguf_name": "v.blk.{bid}.ffn_up.output_min",
+            "q4nx_name": "model.vision.{bid}.ffn.up_output_min",
+            "default_tensor_type": "BF16"            
+        },
+        "vision_ffn_up_input_max":{
+            "gguf_name": "v.blk.{bid}.ffn_up.input_max",
+            "q4nx_name": "model.vision.{bid}.ffn.up_input_max",
+            "default_tensor_type": "BF16"            
+        },
+        "vision_ffn_up_output_max":{
+            "gguf_name": "v.blk.{bid}.ffn_up.output_max",   
+            "q4nx_name": "model.vision.{bid}.ffn.up_output_max",
+            "default_tensor_type": "BF16"
+        },
+        "vision_layer_norm_1_weight":{
+            "gguf_name": "v.blk.{bid}.ln1.weight",
+            "q4nx_name": "model.vision.{bid}.norm1.weight",
+            "default_tensor_type": "BF16"            
+        },
+        "vision_layer_norm_2_weight":{
+            "gguf_name": "v.blk.{bid}.ln2.weight",
+            "q4nx_name": "model.vision.{bid}.norm2.weight",
+            "default_tensor_type": "BF16"            
         }
     }
 }

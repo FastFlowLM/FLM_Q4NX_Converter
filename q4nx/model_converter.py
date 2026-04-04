@@ -8,6 +8,7 @@ from .gguf_tensor import GGUFTensor, GGMLQuantizationType
 from typing import List, Dict, Type
 import os
 import json
+import re
 import torch.nn.functional as F
 from einops import rearrange
 import torch
@@ -133,26 +134,59 @@ class __Q4NX_Converter(ABC):
         self.forward_name_map = {}
         self.backward_name_map = {}
         self.tensor_q4nx_type_map = {}
-        for param_name, param_info in self.q4nx_config["name_map"].items():
-            if ("{bid}" in param_info["gguf_name"]):
-                for bid in range(self.num_layers):
-                    self.forward_name_map[param_info["gguf_name"].format(bid=bid)] = param_info["q4nx_name"].format(bid=bid)
-                    self.backward_name_map[param_info["q4nx_name"].format(bid=bid)] = param_info["gguf_name"].format(bid=bid)
-                    if "default_tensor_type" in param_info:
-                        self.tensor_q4nx_type_map[param_info["gguf_name"].format(bid=bid)] = self.get_ggml_type(param_info["default_tensor_type"])
-                    else:
-                        self.tensor_q4nx_type_map[param_info["gguf_name"].format(bid=bid)] = self.default_tensor_type
-                    if bid == 0:
-                        print(f"\tConverted {param_info['gguf_name'].format(bid=bid)} to {param_info['q4nx_name'].format(bid=bid)}")
-            else:
-                self.forward_name_map[param_info["gguf_name"]] = param_info["q4nx_name"]
-                self.backward_name_map[param_info["q4nx_name"]] = param_info["gguf_name"]
-                if "default_tensor_type" in param_info:
-                    self.tensor_q4nx_type_map[param_info["gguf_name"]] = self.get_ggml_type(param_info["default_tensor_type"])
-                else:
-                    self.tensor_q4nx_type_map[param_info["gguf_name"]] = self.default_tensor_type
 
-                print(f"\tConverted {param_info['gguf_name']} to {param_info['q4nx_name']}")
+        # --- Phase 1: Collect every unique {bid} gguf_name pattern from the config ---
+        bid_templates = {
+            param_info["gguf_name"]
+            for param_info in self.q4nx_config["name_map"].values()
+            if "{bid}" in param_info["gguf_name"]
+        }
+
+        # --- Phase 2: For each unique pattern, detect the layer count from actual GGUF tensors ---
+        bid_patterns = {}  # gguf_name_template -> bid_range
+        for gguf_template in bid_templates:
+            regex = re.compile(
+                "^" + re.escape(gguf_template).replace(r"\{bid\}", r"(\d+)") + "$"
+            )
+            found = sorted(
+                int(match.group(1))
+                for name in self.gguf_tensors
+                for match in [regex.match(name)]
+                if match
+            )
+            if found:
+                num_layers = max(found) + 1
+                print(f"[INFO] Detected {num_layers} layers for pattern '{gguf_template}'")
+                bid_patterns[gguf_template] = range(num_layers)
+            else:
+                bid_patterns[gguf_template] = range(0)
+
+        # --- Phase 3: Apply the mapping using the pre-detected ranges ---
+        for param_info in self.q4nx_config["name_map"].values():
+            gguf_template = param_info["gguf_name"]
+            if "{bid}" in gguf_template:
+                bid_range = bid_patterns[gguf_template]
+                if not bid_range:
+                    continue  # pattern not present in this GGUF file
+                for bid in bid_range:
+                    gguf_name = gguf_template.format(bid=bid)
+                    q4nx_name = param_info["q4nx_name"].format(bid=bid)
+                    self.forward_name_map[gguf_name] = q4nx_name
+                    self.backward_name_map[q4nx_name] = gguf_name
+                    if "default_tensor_type" in param_info:
+                        self.tensor_q4nx_type_map[gguf_name] = self.get_ggml_type(param_info["default_tensor_type"])
+                    else:
+                        self.tensor_q4nx_type_map[gguf_name] = self.default_tensor_type
+                    if bid == 0:
+                        print(f"\tConverted {gguf_name} to {q4nx_name}")
+            else:
+                self.forward_name_map[gguf_template] = param_info["q4nx_name"]
+                self.backward_name_map[param_info["q4nx_name"]] = gguf_template
+                if "default_tensor_type" in param_info:
+                    self.tensor_q4nx_type_map[gguf_template] = self.get_ggml_type(param_info["default_tensor_type"])
+                else:
+                    self.tensor_q4nx_type_map[gguf_template] = self.default_tensor_type
+                print(f"\tConverted {gguf_template} to {param_info['q4nx_name']}")
 
         # sort the name map by the name alphabetically
         self.forward_name_map = dict(sorted(self.forward_name_map.items(), key=lambda item: item[0]))

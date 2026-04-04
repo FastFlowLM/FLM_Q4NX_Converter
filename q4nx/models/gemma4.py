@@ -17,9 +17,7 @@ class Gemma4(__Q4NX_Converter, model_arch=ModelArch.GEMMA4):
         
         # read "embedding_length_per_layer_input" from gguf metadata
         field = self.gguf_reader.fields.get("gemma4.embedding_length_per_layer_input", None)
-        self.embedding_length_per_layer_input = field.contents() 
-        
-         
+        self.embedding_length_per_layer_input = field.contents() if field is not None else None 
     def initialize(self):
         super().initialize()
 
@@ -122,31 +120,39 @@ class Gemma4(__Q4NX_Converter, model_arch=ModelArch.GEMMA4):
 
             self._extract_tokenizer_json(q4nx_path)
         elif weights_type == "vision":
-            pass
-            # for key, gguf_tensor in self.gguf_tensors.items():
-            #     unpacked = gguf_tensor.unpack(GGMLQuantizationType.BF16)
-            #     assert len(unpacked) == 1
-            #     assert type(unpacked[0]) == torch.Tensor, "Vision model tensors"
+            
+            for key, gguf_tensor in self.gguf_tensors.items():
+                unpacked = gguf_tensor.unpack(GGMLQuantizationType.BF16)
+                assert len(unpacked) == 1
+                assert type(unpacked[0]) == torch.Tensor, "Vision model tensors"
 
                 
-            #     weights = unpacked[0]
-            #     if weights.dtype != torch.bfloat16:
-            #         # convert to bfloat16
-            #         weights = weights.to(torch.bfloat16)
+                weights = unpacked[0]
+                if weights.dtype != torch.bfloat16:
+                    # convert to bfloat16
+                    weights = weights.to(torch.bfloat16)
+                if gguf_tensor.name not in self.forward_name_map:
+                    # check is not start with "v"
+                    if not gguf_tensor.name.startswith("v"):
+                        continue
+                    else:
+                        raise ValueError(f"Tensor name {gguf_tensor.name} not found in forward_name_map for vision model")
+                new_name = self.forward_name_map[gguf_tensor.name]
                 
-            #     new_name = self.forward_name_map[gguf_tensor.name]
-                
-            #     if new_name == "multi_modal_projector.mm_input_projection_weight":
-            #         # first do a transpose on this matrix 
-            #         weights = weights.t().contiguous()
-            #         weights = self.vision_mm_weight_rearrange(weights)                    
-            #     elif new_name.endswith("fc2.weight") or new_name.endswith("fc1.weight") \
-            #         or new_name.endswith("k_proj.weight") or new_name.endswith("q_proj.weight")\
-            #         or new_name.endswith("v_proj.weight") or new_name.endswith("out_proj.weight"):
-            #         weights = self.vision_mm_weight_rearrange(weights)
+                if new_name == "model.vision.embedding_projection.weight":
+                    #TODO: no need transpose?
+                    
+                    weights = self.vision_mm_weight_rearrange(weights)                    
+                elif new_name.endswith("ffn_down.weight") or new_name.endswith("ffn_gate.weight") or new_name.endswith("ffn_up.weight") \
+                    or new_name.endswith("k_proj.weight") or new_name.endswith("q_proj.weight")\
+                    or new_name.endswith("v_proj.weight") or new_name.endswith("out_proj.weight") \
+                    or new_name.endswith("gate_proj.weight") or new_name.endswith("up_proj.weight") or new_name.endswith("down_proj.weight"):
+                        
+                        
+                    weights = self.vision_mm_weight_rearrange(weights)
 
 
-            #     self.q4nx_tensors[self.forward_name_map[gguf_tensor.name]] = weights
+                self.q4nx_tensors[self.forward_name_map[gguf_tensor.name]] = weights
         else:
             raise ValueError(f"Unsupported weights_type: {weights_type} for Gemma4 model")
         self._export_q4nx_tensors(q4nx_path)
