@@ -88,6 +88,11 @@ class Gemma4(__Q4NX_Converter, model_arch=ModelArch.GEMMA4):
                     
                     assert w.shape[0] == self.embedding_length_per_layer_input * self.num_layers, f"Expected output projection weight shape[0] to be {self.embedding_length_per_layer_input * self.num_layers}, but got {w.shape[0]}"
                     
+                    # let us save a prefill version of  W for debugging
+                    #NOTE: TODO: We use vision MM
+                    w_for_prefill = self.vision_mm_weight_rearrange(w).contiguous().to(torch.bfloat16)
+                    self.q4nx_tensors[f"{self.forward_name_map[gguf_tensor.name]}_prefill"] = w_for_prefill
+                    
                     w_per_layer = w.reshape(self.num_layers, self.embedding_length_per_layer_input, w.shape[1])
                     
                     for layer_idx in range(self.num_layers):
