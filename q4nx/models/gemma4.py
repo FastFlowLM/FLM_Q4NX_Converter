@@ -143,6 +143,26 @@ class Gemma4(__Q4NX_Converter, model_arch=ModelArch.GEMMA4):
                     #TODO: no need transpose?
                     
                     weights = self.vision_mm_weight_rearrange(weights)                    
+                elif new_name == "model.vision.patch_embedder.position_embedding_table":
+                    assert weights.ndim == 3
+                    assert weights.shape[0] ==2
+                    #TODO: also transpose each weights first ?
+                    
+                    
+                    weights = torch.stack([
+                        self.vision_mm_weight_rearrange(weights[0].T.contiguous()),
+                        self.vision_mm_weight_rearrange(weights[1].T.contiguous()),
+                    ])
+                    
+                elif new_name == "model.vision.patch_embd.weight":
+                    assert(weights.ndim == 4), f"Expected patch embedding weight to be 4D, but got {weights.ndim}D"
+                    
+                    # Revert llama.cpp's permute(0, 3, 1, 2) to get back to original 2D (n_embd, ksize_sq_c)
+                    weights = weights.permute(0, 2, 3, 1).contiguous()
+                    weights = weights.reshape(weights.shape[0], -1)
+                    # weights = weights.T.contiguous()
+                    
+                    weights = self.vision_mm_weight_rearrange(weights)
                 elif new_name.endswith("ffn_down.weight") or new_name.endswith("ffn_gate.weight") or new_name.endswith("ffn_up.weight") \
                     or new_name.endswith("k_proj.weight") or new_name.endswith("q_proj.weight")\
                     or new_name.endswith("v_proj.weight") or new_name.endswith("out_proj.weight") \

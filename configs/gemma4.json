@@ -264,7 +264,7 @@
         },
         "vision_ffn_down_input_max":{
             "gguf_name": "v.blk.{bid}.ffn_down.input_max",
-            "q4nx_name": "model.vision.{bid}.ffn.down_input_max ",
+            "q4nx_name": "model.vision.{bid}.ffn.down_input_max",
             "default_tensor_type": "BF16"            
         },
         "vision_ffn_down_output_max":{
