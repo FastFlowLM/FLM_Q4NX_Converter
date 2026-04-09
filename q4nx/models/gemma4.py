@@ -108,12 +108,12 @@ class Gemma4(__Q4NX_Converter, model_arch=ModelArch.GEMMA4):
 
                     continue
                                         
-                elif "inp_gate.weight" in gguf_tensor.name or "proj.weight" in gguf_tensor.name:
+                elif "inp_gate.weight" in gguf_tensor.name or ".proj.weight" in gguf_tensor.name:
                     
                     unpacked = gguf_tensor.unpack(self.tensor_q4nx_type_map[gguf_tensor.name])
                     
                     
-                    if "inp_gate.weight" in gguf_tensor.name or "per_layer_model_proj.weight" in gguf_tensor.name:
+                    if "inp_gate.weight" in gguf_tensor.name or ".proj.weight" in gguf_tensor.name:
                         # dedicate for prefill with vision MM
                         w_for_prefill = self.vision_mm_weight_rearrange(unpacked[0]).contiguous().to(torch.bfloat16)
                         self.q4nx_tensors[f"{self.forward_name_map[gguf_tensor.name]}_prefill"] = w_for_prefill                    
