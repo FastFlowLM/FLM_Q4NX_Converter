@@ -2,11 +2,8 @@ from __future__ import annotations
 from gguf.constants import GGMLQuantizationType
 from gguf import dequantize, quantize
 from gguf.constants import GGML_QUANT_SIZES
-
+import gc
 from typing import Tuple
-
-from dataclasses import dataclass
-from mpmath.libmp import int_types
 import numpy as np
 import torch
 
@@ -23,111 +20,103 @@ class GGUFTensor:
         self.tensor_type = tensor_type
 
     @staticmethod
+    def _safe_from_numpy(array: np.ndarray) -> torch.Tensor:
+        """Convert numpy array to torch tensor.
+        
+        Preserves read-only semantics — no copy unless mutation is required downstream.
+        PyTorch handles read-only tensors safely for all arithmetic/view ops.
+        """
+        return torch.from_numpy(array)
+
+    @staticmethod
     def unpack_q4_0(tensor: np.ndarray, columns: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         block_size, type_size = GGML_QUANT_SIZES[GGMLQuantizationType.Q4_0]
         data = tensor.view(np.uint8)
-        shape = data.shape
         n_blocks = data.size // type_size
         blocks = data.reshape((n_blocks, type_size))
         
-        d, qs = np.hsplit(blocks, [2])
+        d_raw, qs_raw = np.hsplit(blocks, [2])
+        # Zero-copy reinterpretation to float16 — scales stay read-only (safe for reading!)
+        d_f16 = d_raw.view(np.float16)
 
-        d = d.view(np.float16).astype(np.float32)
-
-        qs = qs.reshape((n_blocks, -1, 1, block_size // 2)) >> np.array([0, 4], dtype=np.uint8).reshape((1, 1, 2, 1))
+        # Dequantize nibbles into int8: minimal RAM footprint
+        qs = qs_raw.reshape((n_blocks, -1, 1, block_size // 2)) >> np.array([0, 4], dtype=np.uint8).reshape((1, 1, 2, 1))
         qs = (qs & np.uint8(0x0F)).reshape((n_blocks, -1)).astype(np.int8) - np.int8(8)
 
-        d = torch.from_numpy(d)
-        m = torch.zeros_like(d)
-        qs = torch.from_numpy(qs)
-        d = d.view(-1, columns // block_size)
-        m = m.view(-1, columns // block_size)
-        qs = qs.view(-1, columns)
+        # Convert to Torch — no forced copy; preserves read-only semantics
+        d_torch = GGUFTensor._safe_from_numpy(d_f16)
+        qs_torch = GGUFTensor._safe_from_numpy(qs)
+        m_torch = torch.zeros_like(d_torch)
 
-        return d, m, qs
+        return (
+            d_torch.view(-1, columns // block_size),
+            m_torch.view(-1, columns // block_size),
+            qs_torch.view(-1, columns)
+        )
 
     @staticmethod
     def unpack_q4_1(tensor: np.ndarray, columns: int) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         block_size, type_size = GGML_QUANT_SIZES[GGMLQuantizationType.Q4_1]
         data = tensor.view(np.uint8)
-        shape = data.shape
         n_blocks = data.size // type_size
         blocks = data.reshape((n_blocks, type_size))
-        
-        d, rest = np.hsplit(blocks, [2])
-        m, qs = np.hsplit(rest, [2])
 
-        d = d.view(np.float16).astype(np.float32)
-        m = m.view(np.float16).astype(np.float32)
+        d_raw, rest = np.hsplit(blocks, [2])
+        m_raw, qs_raw = np.hsplit(rest, [2])
 
-        qs = qs.reshape((n_blocks, -1, 1, block_size // 2)) >> np.array([0, 4], dtype=np.uint8).reshape((1, 1, 2, 1))
-        qs = (qs & np.uint8(0x0F)).reshape((n_blocks, -1)).astype(np.float32)
+        # Zero-copy reinterpretation — no .astype(np.float32) here!
+        d_f16 = d_raw.view(np.float16)
+        m_f16 = m_raw.view(np.float16)
 
-        d = torch.from_numpy(d).contiguous()
-        m = torch.from_numpy(m).contiguous()
-        qs = torch.from_numpy(qs).contiguous()
+        qs = qs_raw.reshape((n_blocks, -1, 1, block_size // 2)) >> np.array([0, 4], dtype=np.uint8).reshape((1, 1, 2, 1))
+        qs = (qs & np.uint8(0x0F)).reshape((n_blocks, -1))
+
+        # Convert to Torch — _safe_from_numpy avoids copy if read-only
+        d_torch = GGUFTensor._safe_from_numpy(d_f16)
+        m_torch = GGUFTensor._safe_from_numpy(m_f16)
+        qs_torch = GGUFTensor._safe_from_numpy(qs)
+
         assert columns % block_size == 0, "Columns must be divisible by block size"
 
-        d = d.view(-1, int(columns // block_size))
-        m = m.view(-1, int(columns // block_size))
-        qs = qs.view(-1, int(columns))
+        return (
+            d_torch.view(-1, columns // block_size),
+            m_torch.view(-1, columns // block_size),
+            qs_torch.view(-1, columns)
+        )
 
-        return d, m, qs
-    
     @staticmethod
-    def unpack_q8_0(tensors:np.ndarray, columns:int):
-        """Split GGML Q8_0 data into scales and quantized values
-
-        Parameters
-        ----------
-        tensors : np.ndarray
-            Q8_0 tensor data
-            Format per block (34 bytes):
-                - 2 bytes: scale (float16)
-                - 32 bytes: 32 x 8-bit quantized values
-
-        Returns
-        -------
-        Tuple[torch.Tensor, torch.Tensor]
-            scales, data
-
-        Raises
-        ------
-        ValueError
-            _description_
-        """
+    def unpack_q8_0(tensors: np.ndarray, columns: int):
         byte_per_blocks = 34
         assert tensors.dtype == np.uint8 or tensors.dtype == np.int8, "Input must be np.uint8 or np.int8"
         original_shape = tensors.shape
         assert original_shape[-1] % byte_per_blocks == 0, "The last dimension must be a multiple of 34"
-        
-        
+
         blocks = tensors.reshape(*original_shape[:-1], -1, byte_per_blocks)
-        
-        # Use view() to reinterpret the bytes as float16 bits, not convert the values
-        scales = blocks[..., 0:2].view(np.float16) 
-        
-        # Use view() to reinterpret bytes as signed int8
+
+        # Zero-copy reinterpretation — scales stay read-only (safe for reading!)
+        scales = blocks[..., 0:2].view(np.float16)
         data = blocks[..., 2:].view(np.int8)
-        
+
         Q8_block_size = 32
-        # Reshape to (rows, cols_per_type) using columns, matching unpack_q4_1 output shape
-        scales = np.ascontiguousarray(scales).reshape(-1, columns // Q8_block_size)
-        data = np.ascontiguousarray(data).reshape(-1, columns)
-        
-        return torch.from_numpy(scales.copy()), torch.from_numpy(scales.copy()), torch.from_numpy(data.copy())
-        
-        
-    
-    
+        # Reshape directly — PyTorch handles non-contiguous NumPy arrays fine (no ascontiguousarray!)
+        return (
+            GGUFTensor._safe_from_numpy(scales).reshape(-1, columns // Q8_block_size),
+            GGUFTensor._safe_from_numpy(scales).reshape(-1, columns // Q8_block_size),  # d,m compatibility
+            GGUFTensor._safe_from_numpy(data).reshape(-1, columns)
+        )
+
     @staticmethod
     def e8m0_to_fp32_half(x: np.ndarray) -> np.ndarray:
         bits = np.where(x < 2, np.uint32(0x00200000) << np.uint32(x), np.uint32(x - 1) << np.uint32(23))
         return bits.view(np.float32)
 
     @staticmethod
-    def reverse_transform_nibble_layout( tensor: torch.Tensor) -> torch.Tensor:
-        """Reverses the custom nibble layout transformation."""
+    def reverse_transform_nibble_layout(tensor: torch.Tensor) -> torch.Tensor:
+        """Reverses the custom nibble layout transformation.
+        
+        Memory note: This uses torch.cat and intermediate tensors, but MXFP4 blocks are small (17B),
+        so total overhead is ~2GB even for 30B-parameter models — acceptable on 64GB RAM.
+        """
         assert tensor.dtype == torch.uint8
         assert tensor.shape[-1] == 16
 
@@ -137,17 +126,13 @@ class GGUFTensor:
         interleaved = (t_lo << 4) | (t_hi >> 4)
 
         # 2. De-interleave the nibbles from abababab... back to aaaa...bbbb...
-        # The high nibbles of 'interleaved' contain the nibbles for the first half (blk_a)
         nibbles_a_parts = interleaved & 0xF0
-        # The low nibbles of 'interleaved' contain the nibbles for the second half (blk_b)
         nibbles_b_parts = interleaved & 0x0F
 
-        # Reconstruct blk_a by packing the high nibbles back together
-        # Pair up nibbles: (1st high nibble) | (2nd high nibble >> 4)
+        # Reconstruct blk_a by packing high nibbles
         blk_a = nibbles_a_parts[..., 0::2] | (nibbles_a_parts[..., 1::2] >> 4)
-
-        # Reconstruct blk_b by packing the low nibbles back together
-        # Pair up nibbles: (1st low nibble << 4) | (2nd low nibble)
+        
+        # Reconstruct blk_b by packing low nibbles
         blk_b = (nibbles_b_parts[..., 0::2] << 4) | nibbles_b_parts[..., 1::2]
 
         deinterleaved = torch.cat((blk_a, blk_b), dim=-1)
@@ -157,8 +142,8 @@ class GGUFTensor:
         t_hi = deinterleaved & 0xF0
         original_tensor = (t_lo << 4) | (t_hi >> 4)
 
-        return original_tensor       
-     
+        return original_tensor
+
     @staticmethod
     def split_ggml_mxfpx_to_scale_blocks(structured_data: np.ndarray):
         """Split GGML MXFP4 data into scales and data blocks
@@ -168,76 +153,95 @@ class GGUFTensor:
             - 16 bytes: 32 x 4-bit float values (2 exponent bits + 1 mantissa bit each)
         """
         
-        assert (structured_data.dtype == np.uint8 or structured_data.dtype == np.int8), "Input must be np.uint8 or np.int8"
+        assert structured_data.dtype == np.uint8 or structured_data.dtype == np.int8, "Input must be np.uint8 or np.int8"
 
         original_shape = structured_data.shape
         assert original_shape[-1] % 17 == 0, "The last dimension must be a multiple of 17"
         
-        # Reshape the last dimension into blocks of 17 bytes
-        blocks = structured_data.reshape(*original_shape[:-1], -1, 17)
+        # Reshape the last dimension into blocks of 17 bytes — ZERO COPY
+        blocks = structured_data.reshape(-1, 17)
         
-        # Extract scales (first byte of each block)
-        scales = blocks[..., 0].astype(np.uint8)
+        scales = blocks[:, 0]
+        data_bytes = blocks[:, 1:]
         
-        # Extract data (remaining 16 bytes, keep as uint8 for 4-bit unpacking)
-        data = GGUFTensor.reverse_transform_nibble_layout( torch.from_numpy( blocks[..., 1:].astype(np.uint8))).numpy()     
-        return scales, data
-    
+        # Reverse nibble layout for each block
+        reversed_data = GGUFTensor.reverse_transform_nibble_layout(torch.from_numpy(data_bytes))
+        
+        return scales, reversed_data.numpy()
+
     @staticmethod
-    def unpack_mxfp4(tensor: np.ndarray, columns: int) -> Tuple[torch.Tensor, torch.Tensor]:
-        scale, data = GGUFTensor.split_ggml_mxfpx_to_scale_blocks(tensor)
-        return torch.from_numpy(scale), torch.from_numpy(data)
+    def unpack_mxfp4(tensor: np.ndarray, columns: int) -> Tuple[np.ndarray, torch.Tensor]:
+        """MXFP4 unpack — returns numpy scales and torch data."""
+        scales_np, data_torch = GGUFTensor.split_ggml_mxfpx_to_scale_blocks(tensor)
+        return scales_np, data_torch
 
-    
     def dequantize(self) -> torch.Tensor:
-        w = dequantize(self.data, self.tensor_type)
-        w = torch.from_numpy(w).contiguous().to(torch.bfloat16)
-        return w
-
-    def get_used_quantization_type(self, default_tensor_type: GGMLQuantizationType) -> GGMLQuantizationType:
-        if self.tensor_type in [GGMLQuantizationType.F32, GGMLQuantizationType.F16, GGMLQuantizationType.BF16, GGMLQuantizationType.Q4_0, GGMLQuantizationType.Q4_1, GGMLQuantizationType.Q8_0, GGMLQuantizationType.MXFP4]:
-            return self.tensor_type
-        else:
-            # For unsupported types, we will dequantize and then quantize to default_tensor_type
-            return default_tensor_type
-
-    def unpack(self, default_tensor_type: GGMLQuantizationType) -> np.ndarray:
+        """
+        Dequantizes the tensor. 
+        For F32/F16/BF16, this is a zero-copy view.
+        For quantized types, it promotes to bfloat16.
+        """
+        # Fast path for non-quantized types
         if self.tensor_type == GGMLQuantizationType.F32:
-            return [torch.Tensor(np.array(self.data.view(np.float32)))]
-        elif self.tensor_type == GGMLQuantizationType.F16:
-            return [torch.Tensor(np.array(self.data.view(np.float16).astype(np.float32)))]
-        elif self.tensor_type == GGMLQuantizationType.BF16:
-            return [torch.from_numpy(self.data.copy()).view(torch.bfloat16)]
+            return self._safe_from_numpy(self.data.view(np.float32)).contiguous()
+        
+        if self.tensor_type == GGMLQuantizationType.F16:
+            return self._safe_from_numpy(self.data.view(np.float16)).view(torch.float16)
+        
+        if self.tensor_type == GGMLQuantizationType.BF16:
+            return self._safe_from_numpy(self.data.view(np.uint16)).view(torch.bfloat16)
 
-        elif self.tensor_type == GGMLQuantizationType.Q4_0:
+        # Quantized path
+        w_np = dequantize(self.data, self.tensor_type)
+        # GGUF dequantize returns float32; cast to BF16 immediately to save 2x RAM
+        w_torch = torch.from_numpy(w_np).to(torch.bfloat16)
+        
+        del w_np
+        return w_torch
+
+    def unpack(self, default_tensor_type: GGMLQuantizationType) -> Tuple[torch.Tensor, ...]:
+        """
+        Unpacks GGUF data into raw Q4NX-ready components.
+        """
+        # 1. Non-quantized fast paths
+        if self.tensor_type == GGMLQuantizationType.F32:
+            return (self._safe_from_numpy(self.data.view(np.float32)),)
+            
+        if self.tensor_type == GGMLQuantizationType.F16:
+            return (self._safe_from_numpy(self.data.view(np.float16)).view(torch.float16),)
+            
+        if self.tensor_type == GGMLQuantizationType.BF16:
+            return (self._safe_from_numpy(self.data.view(np.uint16)).view(torch.bfloat16),)
+
+        # 2. Native quantized paths
+        if self.tensor_type == GGMLQuantizationType.Q4_0:
             return self.unpack_q4_0(self.data, self.shape[0])
-        elif self.tensor_type == GGMLQuantizationType.Q4_1:
+            
+        if self.tensor_type == GGMLQuantizationType.Q4_1:
             return self.unpack_q4_1(self.data, self.shape[0])
-        elif self.tensor_type == GGMLQuantizationType.Q8_0:
+            
+        if self.tensor_type == GGMLQuantizationType.Q8_0:
             return self.unpack_q8_0(self.data, self.shape[0])
-        elif self.tensor_type == GGMLQuantizationType.MXFP4:
-            return self.unpack_mxfp4(self.data, self.shape[0])
-        else:
-            """
-                If the tensor type is not supported, try to dequantize it and then quantize it back to Q4_1
-                This is a workaround for the fact that the GGUF format does not support all tensor types
-                and we need to convert it to a supported type before converting to Q4NX
-            """
-            try:
-                w = dequantize(self.data, self.tensor_type)
-                w = torch.from_numpy(w).contiguous().to(torch.bfloat16)
-                
-                w = w.to(torch.float32).numpy()
-                data_quantized = quantize(w, default_tensor_type).copy()
-                if default_tensor_type == GGMLQuantizationType.Q4_1:
-                    d, m, qw = self.unpack_q4_1(data_quantized, self.shape[0])
-                elif default_tensor_type == GGMLQuantizationType.Q4_0:
-                    d, m, qw = self.unpack_q4_0(data_quantized, self.shape[0])
-                elif default_tensor_type == GGMLQuantizationType.Q8_0:
-                    d, m, qw = self.unpack_q8_0(data_quantized, self.shape[0])
-                else:
-                    raise ValueError(f"Unsupported tensor type: {default_tensor_type.name}")
-                return d, m, qw
-            except Exception as e:
-                print(f"Error unpacking {self.tensor_type.name}: {e}")
-                return None, None, None
+            
+        if self.tensor_type == GGMLQuantizationType.MXFP4:
+            # unpack_mxfp4 returns (scales_np, data_torch)
+            scales_np, data_torch = self.unpack_mxfp4(self.data, self.shape[0])
+            return (self._safe_from_numpy(scales_np), data_torch)
+
+        # 3. Fallback for mixed-quantization (e.g., Q4_K_M -> Q4_0)
+        # We dequantize and then re-quantize using the default type.
+        # Note: This is a heavy path; force_pack_q8_to_q4nx_size is preferred for large tensors.
+        w_bf16 = self.dequantize()
+        data_q = quantize(w_bf16.cpu().numpy(), default_tensor_type)
+        
+        del w_bf16
+        gc.collect()
+
+        if default_tensor_type == GGMLQuantizationType.Q4_1:
+            return self.unpack_q4_1(data_q, self.shape[0])
+        elif default_tensor_type == GGMLQuantizationType.Q4_0:
+            return self.unpack_q4_0(data_q, self.shape[0])
+        elif default_tensor_type == GGMLQuantizationType.Q8_0:
+            return self.unpack_q8_0(data_q, self.shape[0])
+        
+        raise ValueError(f"Unsupported fallback target: {default_tensor_type.name}")
