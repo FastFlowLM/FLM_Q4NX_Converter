@@ -1,6 +1,6 @@
 # FLM Q4NX Converter
 
-A utility for converting GGUF model files into the Q4NX format. This tool supports converting both language and vision model weights.
+A utility for converting GGUF model files into the Q4NX format. This tool supports converting language, vision, and audio model weights.
 
 ## Supported Models
 Based on the configuration, the converter supports several model architectures, including:
@@ -14,6 +14,11 @@ Based on the configuration, the converter supports several model architectures, 
 - Qwen 3
 - Qwen 3 VL
 - Qwen 3.5
+
+### Weight Type Support
+- `language`: supported for model families in `configs/`
+- `vision`: supported for vision-capable architectures (for example, Gemma 4 and Qwen3-VL)
+- `audio`: currently supported for **Gemma 4** (`-t audio`)
 
 ## Setup
 
@@ -51,14 +56,15 @@ python convert.py [input_file] [output_folder] [-t TYPE]
 
 - **`output_folder`**  
   Also available as **`-o`** or **`--output`**.  
-  Specifies the destination folder for the converted output. The converter will save the generated file in this folder using the expected FLM filename, such as **`model.q4nx`** or **`vision_weights.q4nx`**, depending on the selected conversion type.  
+   Specifies the destination folder for the converted output. The converter writes the generated tensors as **`model.q4nx`** into this folder.  
   If not provided, the converter uses the same directory as the input file.
 
 - **`-t`, `--type`**  
   Specifies which weights to convert.  
   Available options are:
   - **`language`** — converts the language model weights
-  - **`vision`** — converts the vision model weights  
+   - **`vision`** — converts the vision model weights
+   - **`audio`** — converts audio model weights (currently Gemma 4)  
   If this option is not specified, the default is **`language`**.
 
 - **`-f`, `--force`**  
@@ -89,7 +95,12 @@ python convert.py -i model.gguf -o output_folder -f qwen2
 ```
 This is useful when the GGUF file metadata doesn't correctly identify the architecture or when you want to override the automatic detection.
 
-**5. Convert from a different quantization format (e.g. Q4_K_M):**
+**5. Convert an audio model (Gemma 4):**
+```bash
+python convert.py -i gemma4-2b-mmproj.gguf -o unsloth-gemma4-2b-audio -t audio -f gemma4
+```
+
+**6. Convert from a different quantization format (e.g. Q4_K_M):**
 ```bash
 python convert.py -i model.gguf -o output_folder
 ```
