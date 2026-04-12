@@ -187,6 +187,56 @@ class Gemma4(__Q4NX_Converter, model_arch=ModelArch.GEMMA4):
 
 
                 self.q4nx_tensors[self.forward_name_map[gguf_tensor.name]] = weights
+                
+        elif weights_type == "audio":
+            for key, gguf_tensor in self.gguf_tensors.items():
+                unpacked = gguf_tensor.unpack(GGMLQuantizationType.BF16)
+                assert len(unpacked) == 1
+                assert type(unpacked[0]) == torch.Tensor, "Audio model tensors"
+
+                
+                weights = unpacked[0]
+                if weights.dtype != torch.bfloat16:
+                    # convert to bfloat16
+                    weights = weights.to(torch.bfloat16)
+                    
+                if gguf_tensor.name not in self.forward_name_map:
+                    if not gguf_tensor.name.startswith("a"):
+                        continue
+                    else:
+                        raise ValueError(f"Tensor name {gguf_tensor.name} not found in forward_name_map for audio model")
+                new_name = self.forward_name_map[gguf_tensor.name]
+
+                if new_name.endswith("conv_dw.weight"):
+                    weights = weights.T.contiguous()
+                    self.q4nx_tensors[self.forward_name_map[gguf_tensor.name]] = weights
+                    continue
+
+                matrix_suffix_for_weight_rearrange = [
+                    "attn_k_proj.weight", "attn_out_proj.weight",
+                    # "attn_k_proj.rel_weight",
+                    "attn_q_proj.weight", "attn_v_proj.weight",
+                    "ffn.down_proj.weight", "ffn.down_proj_1.weight",
+                    "ffn.up_proj.weight", "ffn.up_proj_1.weight",
+                    "conv_pw_1.weight", "conv_pw_2.weight",
+                    "model.audio.embedding_projection.weight",
+                    "model.audio.encode_input_projection.weight",
+                    "model.audio.pre_encoder.weight"
+                ]
+                
+                
+                for suf in matrix_suffix_for_weight_rearrange:
+
+                    if new_name.endswith(suf) or new_name == suf:
+                        weights = self.audio_mm_weight_rearrange(weights).contiguous()
+                        break
+
+            
+
+            
+                self.q4nx_tensors[self.forward_name_map[gguf_tensor.name]] = weights
+    
+                
         else:
             raise ValueError(f"Unsupported weights_type: {weights_type} for Gemma4 model")
         self._export_q4nx_tensors(q4nx_path)

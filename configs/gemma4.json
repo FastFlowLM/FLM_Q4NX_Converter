@@ -9,6 +9,10 @@
         "vision_MM_K": 256,
         "vision_MM_N": 64
     },    
+    "audio_config":{
+        "audio_MM_K": 256,
+        "audio_MM_N": 64
+    },       
     "default_tensor_type": "Q4_1",
     "name_map": {
         "embedding": {
@@ -334,6 +338,354 @@
             "gguf_name": "v.blk.{bid}.ln2.weight",
             "q4nx_name": "model.vision.{bid}.norm2.weight",
             "default_tensor_type": "BF16"            
+        },
+
+
+        "audio_input_proj_weight" :{
+            "gguf_name": "mm.a.input_projection.weight",
+            "q4nx_name": "model.audio.embedding_projection.weight",
+            "default_tensor_type": "BF16"
+        },
+        "audio_pre_encode_weight":{
+            "gguf_name": "a.pre_encode.out.weight",
+            "q4nx_name": "model.audio.pre_encoder.weight",
+            "default_tensor_type": "BF16"
+        },
+        "audio_pre_encode_bias":{
+            "gguf_name": "a.pre_encode.out.bias",
+            "q4nx_name": "model.audio.pre_encoder.bias",
+            "default_tensor_type": "BF16"
+        },
+        "audio_encode_input_projection_weight":{
+            "gguf_name": "a.input_projection.weight",
+            "q4nx_name": "model.audio.encode_input_projection.weight",
+            "default_tensor_type": "BF16"
+        },
+        "audio_subSample_conv_layer0_weight":{
+            "gguf_name": "a.conv1d.0.weight",
+            "q4nx_name": "model.audio.subsample.conv_layer0.weight",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_subSample_conv_layer0_norm":{
+            "gguf_name": "a.conv1d.0.norm.weight",
+            "q4nx_name": "model.audio.subsample.conv_layer0.norm.weight",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_subSample_conv_layer1_weight":{
+            "gguf_name": "a.conv1d.1.weight",
+            "q4nx_name": "model.audio.subsample.conv_layer1.weight",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_subSample_conv_layer1_norm":{
+            "gguf_name": "a.conv1d.1.norm.weight",
+            "q4nx_name": "model.audio.subsample.conv_layer1.norm.weight",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_attn_k_proj_weight": {
+            "gguf_name": "a.blk.{bid}.attn_k.weight",
+            "q4nx_name": "model.audio.{bid}.attn_k_proj.weight"
+        },
+        "audio_attn_k_proj_rel_weight":{
+            "gguf_name": "a.blk.{bid}.attn_k_rel.weight",
+            "q4nx_name": "model.audio.{bid}.attn_k_proj.rel_weight",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_attn_k_input_min":{
+            "gguf_name": "a.blk.{bid}.attn_k.input_min",
+            "q4nx_name": "model.audio.{bid}.attn_k_proj.input_min",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_attn_k_input_max":{
+            "gguf_name": "a.blk.{bid}.attn_k.input_max",
+            "q4nx_name": "model.audio.{bid}.attn_k_proj.input_max",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_attn_k_output_min":{
+            "gguf_name": "a.blk.{bid}.attn_k.output_min",
+            "q4nx_name": "model.audio.{bid}.attn_k_proj.output_min",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_attn_k_output_max":{
+            "gguf_name": "a.blk.{bid}.attn_k.output_max",
+            "q4nx_name": "model.audio.{bid}.attn_k_proj.output_max",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_attn_out_weight":{
+            "gguf_name": "a.blk.{bid}.attn_out.weight",
+            "q4nx_name": "model.audio.{bid}.attn_out_proj.weight"
+        },
+        "audio_Attn_out_input_min":{
+            "gguf_name": "a.blk.{bid}.attn_out.input_min",
+            "q4nx_name": "model.audio.{bid}.attn_out_proj.input_min",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_Attn_out_input_max":{
+            "gguf_name": "a.blk.{bid}.attn_out.input_max",
+            "q4nx_name": "model.audio.{bid}.attn_out_proj.input_max",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_Attn_out_output_min":{
+            "gguf_name": "a.blk.{bid}.attn_out.output_min",
+            "q4nx_name": "model.audio.{bid}.attn_out_proj.output_min",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_Attn_out_output_max":{
+            "gguf_name": "a.blk.{bid}.attn_out.output_max",
+            "q4nx_name": "model.audio.{bid}.attn_out_proj.output_max",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_attn_post_norm_weight":{
+            "gguf_name": "a.blk.{bid}.attn_post_norm.weight",
+            "q4nx_name": "model.audio.{bid}.attn_post_norm.weight",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_attn_pre_norm_weight":{
+            "gguf_name": "a.blk.{bid}.attn_pre_norm.weight",
+            "q4nx_name": "model.audio.{bid}.attn_pre_norm.weight",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_attn_q_proj_weight": {
+            "gguf_name": "a.blk.{bid}.attn_q.weight",
+            "q4nx_name": "model.audio.{bid}.attn_q_proj.weight"
+        },
+        "audio_attn_q_input_min":{
+            "gguf_name": "a.blk.{bid}.attn_q.input_min",
+            "q4nx_name": "model.audio.{bid}.attn_q_proj.input_min",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_attn_q_output_min":{
+            "gguf_name": "a.blk.{bid}.attn_q.output_min",
+            "q4nx_name": "model.audio.{bid}.attn_q_proj.output_min",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_attn_q_input_max":{
+            "gguf_name": "a.blk.{bid}.attn_q.input_max",
+            "q4nx_name": "model.audio.{bid}.attn_q_proj.input_max",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_attn_q_output_max":{
+            "gguf_name": "a.blk.{bid}.attn_q.output_max",
+            "q4nx_name": "model.audio.{bid}.attn_q_proj.output_max",
+            "default_tensor_type": "BF16"   
+        },
+        "audio_attn_v_proj_weight": {
+            "gguf_name": "a.blk.{bid}.attn_v.weight",
+            "q4nx_name": "model.audio.{bid}.attn_v_proj.weight"
+        },
+        "audio_attn_v_input_min":{
+            "gguf_name": "a.blk.{bid}.attn_v.input_min",
+            "q4nx_name": "model.audio.{bid}.attn_v_proj.input_min",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_attn_v_output_min":{ 
+            "gguf_name": "a.blk.{bid}.attn_v.output_min",
+            "q4nx_name": "model.audio.{bid}.attn_v_proj.output_min",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_attn_v_input_max":{
+            "gguf_name": "a.blk.{bid}.attn_v.input_max",
+            "q4nx_name": "model.audio.{bid}.attn_v_proj.input_max",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_attn_v_output_max":{
+            "gguf_name": "a.blk.{bid}.attn_v.output_max",
+            "q4nx_name": "model.audio.{bid}.attn_v_proj.output_max",
+            "default_tensor_type": "BF16"
+        },
+        "audio_conv_dw_weight":{
+            "gguf_name": "a.blk.{bid}.conv_dw.weight",
+            "q4nx_name": "model.audio.{bid}.conv_dw.weight",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_conv_pw_1_weight": {
+            "gguf_name": "a.blk.{bid}.conv_pw1.weight",
+            "q4nx_name": "model.audio.{bid}.conv_pw_1.weight",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_conv_pw_1_input_min": {
+            "gguf_name": "a.blk.{bid}.conv_pw1.input_min",
+            "q4nx_name": "model.audio.{bid}.conv_pw_1.input_min",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_conv_pw_1_input_max": {
+            "gguf_name": "a.blk.{bid}.conv_pw1.input_max",
+            "q4nx_name": "model.audio.{bid}.conv_pw_1.input_max",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_conv_pw_1_output_min": {
+            "gguf_name": "a.blk.{bid}.conv_pw1.output_min",
+            "q4nx_name": "model.audio.{bid}.conv_pw_1.output_min",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_conv_pw_1_output_max": {
+            "gguf_name": "a.blk.{bid}.conv_pw1.output_max",
+            "q4nx_name": "model.audio.{bid}.conv_pw_1.output_max",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_conv_pw_2_weight": {
+            "gguf_name": "a.blk.{bid}.conv_pw2.weight",
+            "q4nx_name": "model.audio.{bid}.conv_pw_2.weight",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_conv_pw_2_input_min": {
+            "gguf_name": "a.blk.{bid}.conv_pw2.input_min",
+            "q4nx_name": "model.audio.{bid}.conv_pw_2.input_min",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_conv_pw_2_input_max": {
+            "gguf_name": "a.blk.{bid}.conv_pw2.input_max",
+            "q4nx_name": "model.audio.{bid}.conv_pw_2.input_max",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_conv_pw_2_output_min": {
+            "gguf_name": "a.blk.{bid}.conv_pw2.output_min", 
+            "q4nx_name": "model.audio.{bid}.conv_pw_2.output_min",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_conv_pw_2_output_max": {
+            "gguf_name": "a.blk.{bid}.conv_pw2.output_max",
+            "q4nx_name": "model.audio.{bid}.conv_pw_2.output_max",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_ffn_down_proj_weight":{
+            "gguf_name": "a.blk.{bid}.ffn_down.weight",
+            "q4nx_name": "model.audio.{bid}.ffn.down_proj.weight",
+            "default_tensor_type": "BF16"
+        },
+        "audio_ffn_down_input_min":{
+            "gguf_name": "a.blk.{bid}.ffn_down.input_min",
+            "q4nx_name": "model.audio.{bid}.ffn.down_proj.input_min",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_ffn_down_input_max":{
+            "gguf_name": "a.blk.{bid}.ffn_down.input_max",
+            "q4nx_name": "model.audio.{bid}.ffn.down_proj.input_max",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_ffn_down_output_min":{
+            "gguf_name": "a.blk.{bid}.ffn_down.output_min",
+            "q4nx_name": "model.audio.{bid}.ffn.down_proj.output_min",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_ffn_down_output_max":{
+            "gguf_name": "a.blk.{bid}.ffn_down.output_max",
+            "q4nx_name": "model.audio.{bid}.ffn.down_proj.output_max",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_ffn_down_proj_weight_1":{
+            "gguf_name": "a.blk.{bid}.ffn_down_1.weight",
+            "q4nx_name": "model.audio.{bid}.ffn.down_proj_1.weight",
+            "default_tensor_type": "BF16"
+        },
+        "audio_ffn_down_1_input_min":{
+            "gguf_name": "a.blk.{bid}.ffn_down_1.input_min",
+            "q4nx_name": "model.audio.{bid}.ffn.down_proj_1.input_min",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_ffn_down_1_input_max":{
+            "gguf_name": "a.blk.{bid}.ffn_down_1.input_max",
+            "q4nx_name": "model.audio.{bid}.ffn.down_proj_1.input_max",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_ffn_down_1_output_min":{
+            "gguf_name": "a.blk.{bid}.ffn_down_1.output_min",
+            "q4nx_name": "model.audio.{bid}.ffn.down_proj_1.output_min",
+            "default_tensor_type": "BF16"            
+        }, 
+        "audio_ffn_down_1_output_max":{
+            "gguf_name": "a.blk.{bid}.ffn_down_1.output_max",
+            "q4nx_name": "model.audio.{bid}.ffn.down_proj_1.output_max",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_ffn_norm_weight":{
+            "gguf_name": "a.blk.{bid}.ffn_norm.weight",
+            "q4nx_name": "model.audio.{bid}.ffn_norm.weight",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_ffn_norm_weight_1":{
+            "gguf_name": "a.blk.{bid}.ffn_norm_1.weight",
+            "q4nx_name": "model.audio.{bid}.ffn_norm_1.weight",
+            "default_tensor_type": "BF16"
+        },
+        "audio_ffn_post_norm_weight":{
+            "gguf_name": "a.blk.{bid}.ffn_post_norm.weight",
+            "q4nx_name": "model.audio.{bid}.ffn_post_norm.weight",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_ffn_post_norm_weight_1":{
+            "gguf_name": "a.blk.{bid}.ffn_post_norm_1.weight",
+            "q4nx_name": "model.audio.{bid}.ffn_post_norm_1.weight",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_ffn_up_proj_weight":{
+            "gguf_name": "a.blk.{bid}.ffn_up.weight",
+            "q4nx_name": "model.audio.{bid}.ffn.up_proj.weight",
+            "default_tensor_type": "BF16"
+        },
+        "audio_ffn_up_input_min":{
+            "gguf_name": "a.blk.{bid}.ffn_up.input_min",
+            "q4nx_name": "model.audio.{bid}.ffn.up_proj.input_min",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_ffn_up_input_max":{
+            "gguf_name": "a.blk.{bid}.ffn_up.input_max",
+            "q4nx_name": "model.audio.{bid}.ffn.up_proj.input_max",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_ffn_up_output_min":{
+            "gguf_name": "a.blk.{bid}.ffn_up.output_min",
+            "q4nx_name": "model.audio.{bid}.ffn.up_proj.output_min",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_ffn_up_output_max":{
+            "gguf_name": "a.blk.{bid}.ffn_up.output_max",
+            "q4nx_name": "model.audio.{bid}.ffn.up_proj.output_max",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_ffn_up_proj_weight_1":{
+            "gguf_name": "a.blk.{bid}.ffn_up_1.weight",
+            "q4nx_name": "model.audio.{bid}.ffn.up_proj_1.weight",
+            "default_tensor_type": "BF16"
+        },
+        "audio_ffn_up_1_input_min":{
+            "gguf_name": "a.blk.{bid}.ffn_up_1.input_min",
+            "q4nx_name": "model.audio.{bid}.ffn.up_proj_1.input_min",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_ffn_up_1_input_max":{
+            "gguf_name": "a.blk.{bid}.ffn_up_1.input_max",
+            "q4nx_name": "model.audio.{bid}.ffn.up_proj_1.input_max",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_ffn_up_1_output_min":{
+            "gguf_name": "a.blk.{bid}.ffn_up_1.output_min",
+            "q4nx_name": "model.audio.{bid}.ffn.up_proj_1.output_min",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_ffn_up_1_output_max":{   
+            "gguf_name": "a.blk.{bid}.ffn_up_1.output_max",
+            "q4nx_name": "model.audio.{bid}.ffn.up_proj_1.output_max",
+            "default_tensor_type": "BF16"            
+        },
+        "audio_ln2_norm_weight":{
+            "gguf_name": "a.blk.{bid}.ln2.weight",
+            "q4nx_name": "model.audio.{bid}.ln2.weight",
+            "default_tensor_type": "BF16"
+        },
+        "audio_norm_conv_weight":{
+            "gguf_name": "a.blk.{bid}.norm_conv.weight",
+            "q4nx_name": "model.audio.{bid}.norm_conv.weight",
+            "default_tensor_type": "BF16"
+        },
+        "audio_conv_norm_weight":{
+            "gguf_name": "a.blk.{bid}.conv_norm.weight",
+            "q4nx_name": "model.audio.{bid}.conv_norm.weight",
+            "default_tensor_type": "BF16"            
+        },        
+        "audio_pre_dim_scale_weight":{
+            "gguf_name": "a.blk.{bid}.per_dim_scale.weight",
+            "q4nx_name": "model.audio.{bid}.pre_dim_scale.weight",
+            "default_tensor_type": "BF16"
         }
     }
 }

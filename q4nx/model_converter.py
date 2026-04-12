@@ -42,6 +42,10 @@ class __Q4NX_Converter(ABC):
     vision_MM_K:int|None
     vision_MM_N:int|None
     
+    
+    audio_MM_K:int|None
+    audio_MM_N:int|None
+    
     forward_name_map: Dict[str, str]
     backward_name_map: Dict[str, str]
     tensor_q4nx_type_map: Dict[str, GGMLQuantizationType]
@@ -115,6 +119,13 @@ class __Q4NX_Converter(ABC):
         else:
             self.vision_MM_K = None
             self.vision_MM_N = None
+            
+        if "audio_config" in self.q4nx_config:
+            self.audio_MM_K = self.q4nx_config["audio_config"]["audio_MM_K"]
+            self.audio_MM_N = self.q4nx_config["audio_config"]["audio_MM_N"]
+        else:
+            self.audio_MM_K = None
+            self.audio_MM_N = None
         self._create_name_maps()
 
     def get_ggml_type(self, q4nx_name: str) -> GGMLQuantizationType:
@@ -685,6 +696,30 @@ class __Q4NX_Converter(ABC):
 
         merged = torch.from_numpy(merged)
         return merged
+    
+    
+    
+    def _multi_modal_mm_weight_rearrange(self, weight: torch.Tensor,
+                                            kernel_mm_K:int|None, kernel_mm_N:int|None
+                                            ) -> torch.Tensor:
+        
+        assert len(weight.shape) ==2
+        assert kernel_mm_K is not None and kernel_mm_N is not None, "kernel_mm_K and kernel_mm_N must be set for vision model weight rearrangement"
+        MM_N_K_padding = max(kernel_mm_N, kernel_mm_K)
+        origin_N, origin_K = weight.shape
+        
+
+        pad_N = (MM_N_K_padding - origin_N % MM_N_K_padding) % MM_N_K_padding
+        pad_K = (MM_N_K_padding - origin_K % MM_N_K_padding) % MM_N_K_padding
+        
+        if pad_N >0 or pad_K >0:
+            weight = F.pad(weight, (0, pad_K, 0, pad_N), "constant", 0)
+        weight = rearrange( weight, 
+                        "(N mm_n) (K mm_k) -> N K (mm_n mm_k)",
+                        mm_k = kernel_mm_K, mm_n = kernel_mm_N).contiguous()
+
+        return weight
+    
     def vision_mm_weight_rearrange(self, weight: torch.Tensor) -> torch.Tensor:
         """Rearrange the vision MM weights
 
@@ -720,25 +755,10 @@ class __Q4NX_Converter(ABC):
         mm_n and mm_k are the data block size that each CT can process in one time.
         
         """
+        return self._multi_modal_mm_weight_rearrange(weight=weight, kernel_mm_K= self.vision_MM_K, kernel_mm_N= self.vision_MM_N)
         
-        assert len(weight.shape) ==2
-        assert self.vision_MM_K is not None and self.vision_MM_N is not None, "vision_MM_K and vision_MM_N must be set for vision model weight rearrangement"
-        MM_N_K_padding = max(self.vision_MM_N, self.vision_MM_K)
-        origin_N, origin_K = weight.shape
-        
-    
-        pad_N = (MM_N_K_padding - origin_N % MM_N_K_padding) % MM_N_K_padding
-        pad_K = (MM_N_K_padding - origin_K % MM_N_K_padding) % MM_N_K_padding
-        
-        if pad_N >0 or pad_K >0:
-            weight = F.pad(weight, (0, pad_K, 0, pad_N), "constant", 0)
-        weight = rearrange( weight, 
-                        "(N mm_n) (K mm_k) -> N K (mm_n mm_k)",
-                        mm_k = self.vision_MM_K, mm_n = self.vision_MM_N).contiguous()
-
-        return weight
-        
-
+    def audio_mm_weight_rearrange(self, weight: torch.Tensor) -> torch.Tensor:
+        return self._multi_modal_mm_weight_rearrange(weight=weight, kernel_mm_K= self.audio_MM_K, kernel_mm_N= self.audio_MM_N)
     def _extract_tokenizer_json(self, output_folder: str) -> dict:
         """
         Extract tokenizer information from GGUF file and convert to HuggingFace tokenizer.json format.
