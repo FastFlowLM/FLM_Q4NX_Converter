@@ -72,7 +72,7 @@ class Gemma4(__Q4NX_Converter, model_arch=ModelArch.GEMMA4):
                     # w = dequantize(gguf_tensor.data, gguf_tensor.tensor_type)
                     unpacked = gguf_tensor.unpack(GGMLQuantizationType.Q8_0)
                     d, m, qw = unpacked
-                    d = d.to(torch.float32) * float(self.hidden_size) ** 0.5
+                    d = d.to(torch.float32) * (float(self.hidden_size) ** 0.5)
                     # m = m * float(self.hidden_size) ** 0.5
                     # w = w * float(self.hidden_size) ** 0.5
                     # w = torch.from_numpy(w).contiguous().to(torch.bfloat16)
@@ -87,7 +87,7 @@ class Gemma4(__Q4NX_Converter, model_arch=ModelArch.GEMMA4):
 
                     unpacked = gguf_tensor.unpack(GGMLQuantizationType.Q8_0)
                     d, m, qw = unpacked
-                    d = d.to(torch.float32) * float(self.embedding_length_per_layer_input) ** 0.5
+                    d = d.to(torch.float32) * (float(self.embedding_length_per_layer_input) ** 0.5)
                     # m = m * float(self.hidden_size) ** 0.5
                     # w = w * float(self.hidden_size) ** 0.5
                     # w = torch.from_numpy(w).contiguous().to(torch.bfloat16)
