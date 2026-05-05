@@ -105,6 +105,6 @@ if __name__ == "__main__":
     
     #sys.argv = ['convert.py', '-i', 'gemma4-2b-mmproj.gguf', '-o', 'unsloth-gemma4-2b-vision', '-t', 'vision']     
     
-    sys.argv = ['convert.py', '-i', 'gemma4-2b-mmproj.gguf', '-o', 'unsloth-gemma4-2b-audio', '-t', 'audio']         
+    #sys.argv = ['convert.py', '-i', 'gemma4-2b-mmproj.gguf', '-o', 'unsloth-gemma4-2b-audio', '-t', 'audio']         
     # sys.argv = ['convert.py', '-i', 'debug_gemma4e2b_model.gguf', '-o', 'debug-gemma4-2b-audio', '-t', 'audio', '-f', 'gemma4']           
     main()
