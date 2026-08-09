@@ -633,10 +633,11 @@ class __Q4NX_Converter(ABC):
             m_np = m.numpy()            
             merged = np.concatenate([scales_np,  m_np, data_np], axis = -1).copy()
         else:
-            # We pack to q8nx, if there is no bias, we provide a fake bias of all zero
-            # create a zero npy array of scale shape
-            zero_np = np.zeros_like(scales_np)
-            merged = np.concatenate([scales_np, zero_np,  data_np], axis = -1).copy()
+            # Q8_0 has no bias term, and FastFlowLM's own builds do not reserve
+            # space for one: a 32x256 block is 512 bytes of scales + 8192 bytes of
+            # data = 8704, which is what every published Qwen3.5 q4nx has. Emitting
+            # a zero bias block here makes it 9216 and the model will not load.
+            merged = np.concatenate([scales_np, data_np], axis = -1).copy()
         return torch.from_numpy(merged)       
     
     def _pack_q4nx(self, d: torch.Tensor, m: torch.Tensor = None, qw: torch.Tensor = None) -> torch.Tensor:
