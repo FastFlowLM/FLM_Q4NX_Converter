@@ -91,7 +91,7 @@ if __name__ == "__main__":
      
     #sys.argv = ['convert.py', '-i', 'qwen3_5vl-9bmmproj-BF16.gguf', '-o', 'unsloth-qwen3_5_9bvl-vision', '-t', 'vision'] 
     
-    
+    sys.argv = ['convert.py', '-i', 'Qwen3.5-0.8B-Q4_1.gguf', '-o', 'unsloth-qwen3_5_0.8bq41']
     #sys.argv = ['convert.py', '-i', 'Qwen3.5-4B-Q4_1.gguf', '-o', 'unsloth-qwen3_5_4bq41'] 
     
     #sys.argv = ['convert.py', '-i', 'Qwen3.5-9B-Uncensored-HauhauCS-Aggressive-Q4_K_M.gguf', '-o', 'unsloth-qwen3_59b_uncensored', "-f", "qwen3.5-9B"]     
@@ -105,6 +105,6 @@ if __name__ == "__main__":
     
     #sys.argv = ['convert.py', '-i', 'gemma4-2b-mmproj.gguf', '-o', 'unsloth-gemma4-2b-vision', '-t', 'vision']     
     
-    sys.argv = ['convert.py', '-i', 'gemma4-2b-mmproj.gguf', '-o', 'unsloth-gemma4-2b-audio', '-t', 'audio']         
+    #sys.argv = ['convert.py', '-i', 'gemma4-2b-mmproj.gguf', '-o', 'unsloth-gemma4-2b-audio', '-t', 'audio']         
     # sys.argv = ['convert.py', '-i', 'debug_gemma4e2b_model.gguf', '-o', 'debug-gemma4-2b-audio', '-t', 'audio', '-f', 'gemma4']           
     main()
