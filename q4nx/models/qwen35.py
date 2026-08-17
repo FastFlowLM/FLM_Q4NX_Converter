@@ -35,6 +35,9 @@ class Qwen35(__Q4NX_Converter, model_arch=ModelArch.QWEN35_4B):
                 self.q4nx_tensors["lm_head.weight"] = self._pack(*unpacked, tensor_type=target_dtype)
 
             for key, gguf_tensor in self.gguf_tensors.items():
+                if ".nextn." in gguf_tensor.name:
+                    print(f"[SKIP] {gguf_tensor.name} (MTP next-token prediction weights, absent from official Q4NX)")
+                    continue
                 target_dtype = gguf_tensor.get_used_quantization_type(self.tensor_q4nx_type_map[gguf_tensor.name])
                 print(f"Processing tensor: {gguf_tensor.name} with type {gguf_tensor.tensor_type.name} -> {self.forward_name_map[gguf_tensor.name]} with dtype {target_dtype.name}")
                 if "token_embd.weight" in gguf_tensor.name: # this should be bf16
@@ -48,7 +51,7 @@ class Qwen35(__Q4NX_Converter, model_arch=ModelArch.QWEN35_4B):
                 if "layers." in new_name:
                     layer_id = int(new_name.split("layers.")[1].split(".")[0])
 
-                unpacked = gguf_tensor.unpack(self.tensor_q4nx_type_map[gguf_tensor.name])
+                unpacked = gguf_tensor.unpack(target_dtype)
 
                 if layer_id % full_attntion_interval == (full_attntion_interval - 1):    
                     if "q_proj" in self.forward_name_map[gguf_tensor.name]: # for llama q_proj, the order is special
@@ -194,7 +197,7 @@ class Qwen35(__Q4NX_Converter, model_arch=ModelArch.QWEN35_4B):
         else:
             raise ValueError(f"Unsupported weights_type: {weights_type} for Qwen35 model")
 
-        self._export_q4nx_tensors(q4nx_path)
+        self._export_weights(q4nx_path, weights_type)
 
 
 class Qwen35_2B(Qwen35, model_arch=ModelArch.QWEN35_2B):

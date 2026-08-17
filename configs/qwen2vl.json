@@ -7,7 +7,8 @@
     },
     "vision_config":{
         "vision_MM_K": 256,
-        "vision_MM_N": 64
+        "vision_MM_N": 64,
+        "vision_file": "vision_weights.q4nx"
     },        
     "default_tensor_type": "Q4_1",
     "name_map": {

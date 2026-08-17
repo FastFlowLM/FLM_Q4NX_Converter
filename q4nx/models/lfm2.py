@@ -32,5 +32,5 @@ class LFM2(__Q4NX_Converter, model_arch=ModelArch.LFM2):
             unpacked = gguf_tensor.unpack(self.default_tensor_type)
             self.q4nx_tensors[self.forward_name_map[gguf_tensor.name]] = self._pack_q4nx(*unpacked)
 
-        self._export_q4nx_tensors(q4nx_path)
+        self._export_weights(q4nx_path, weights_type)
         self._extract_tokenizer_json(q4nx_path)

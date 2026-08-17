@@ -36,7 +36,14 @@ class Nanbeige(__Q4NX_Converter, model_arch=ModelArch.NANBEIGE):
             if "q_proj" in self.forward_name_map[gguf_tensor.name] or "k_proj" in self.forward_name_map[gguf_tensor.name]: # for llama q_proj, the order is special
                 # 0, 1, 2, .... 127
                 # 0, 64, 1, ..., 127
-                DH = self.gguf_reader.fields["llama.rope.dimension_count"].contents()
+                # Nanbeige 4.2 GGUFs use the native 'nanbeige' arch (fields
+                # prefixed 'nanbeige.*'); 4.1-era GGUFs were 'llama' arch.
+                rope_field = self.gguf_reader.fields.get("nanbeige.rope.dimension_count")
+                if rope_field is None:
+                    rope_field = self.gguf_reader.fields.get("llama.rope.dimension_count")
+                if rope_field is None:
+                    raise KeyError("Missing rope.dimension_count in GGUF metadata")
+                DH = rope_field.contents()
                 pp = DH // 2
                 d, m, qw = unpacked
                 d = rearrange(d, '(g p q) c -> (g q p) c', p = pp, q = 2).contiguous()
@@ -73,5 +80,5 @@ class Nanbeige(__Q4NX_Converter, model_arch=ModelArch.NANBEIGE):
                     
             self.q4nx_tensors[self.forward_name_map[gguf_tensor.name]] = self._pack_q4nx(*unpacked)
 
-        self._export_q4nx_tensors(q4nx_path)
+        self._export_weights(q4nx_path, weights_type)
         self._extract_tokenizer_json(q4nx_path)

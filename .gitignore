@@ -1,6 +1,7 @@
 # Byte-compiled / optimized / DLL files
 gguf_files/
 q4nx_files/
+log/
 *.ipynb
 *.bin
 *.gguf

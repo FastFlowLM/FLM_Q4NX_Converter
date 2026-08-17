@@ -1,0 +1,9 @@
+matplotlib==3.11.1
+ipykernel==7.3.0
+amd-quark==0.12.post1
+einops==0.8.2
+accelerate==1.14.0
+transformers==4.57.6
+modelscope==1.39.1
+modelscope-hub==0.2.0
+git+https://github.com/ggml-org/llama.cpp.git#subdir=gguf-py

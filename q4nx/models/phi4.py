@@ -84,5 +84,5 @@ class Phi4(__Q4NX_Converter, model_arch=ModelArch.PHI4):
 
         print(self.q4nx_tensors["rope.short.weight"])
         print(self.q4nx_tensors["rope.long.weight"])
-        self._export_q4nx_tensors(q4nx_path)
+        self._export_weights(q4nx_path, weights_type)
         self._extract_tokenizer_json(q4nx_path)

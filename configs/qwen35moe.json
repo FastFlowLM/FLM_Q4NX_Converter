@@ -1,0 +1,15 @@
+{
+  "q4nx_config": {
+    "row_block_size": 32,
+    "col_block_size": 256,
+    "parallel_size": 16,
+    "keep_block_in_2D": true
+  },
+  "default_tensor_type": "Q4_1",
+  "name_map": {},
+  "addr_qk": 9216,
+  "addr_kv": 36864,
+  "addr_kk": 45056,
+  "addr_l_begin_mha": 53760,
+  "addr_l_end_mha": 25088
+}

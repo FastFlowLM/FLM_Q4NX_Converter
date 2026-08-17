@@ -107,4 +107,4 @@ class Qwen2VL(__Q4NX_Converter, model_arch=ModelArch.QWEN2VL):
     
         else:
             raise ValueError(f"Unsupported weights_type: {weights_type} for Qwen2.5VL model")
-        self._export_q4nx_tensors(q4nx_path)            
+        self._export_weights(q4nx_path, weights_type)            

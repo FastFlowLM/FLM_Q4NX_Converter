@@ -67,4 +67,4 @@ class Gemma3(__Q4NX_Converter, model_arch=ModelArch.GEMMA3):
                 self.q4nx_tensors[self.forward_name_map[gguf_tensor.name]] = weights
         else:
             raise ValueError(f"Unsupported weights_type: {weights_type} for Gemma3 model")
-        self._export_q4nx_tensors(q4nx_path)
+        self._export_weights(q4nx_path, weights_type)
